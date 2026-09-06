@@ -82,8 +82,9 @@ Further limits get added here as we find them. This section grows; it does not s
 
 ## Status
 
-Pre-implementation. This repo currently contains de-risking spikes only — see
-[`docs/plans/01-spikes.md`](docs/plans/01-spikes.md) and [`docs/spikes/`](docs/spikes/).
+Pre-implementation. This repo currently contains de-risking spikes only. Start with
+[`docs/SESSION-01.md`](docs/SESSION-01.md) for what was verified and what was not; the individual
+reports and their raw mirror-node evidence are in [`docs/spikes/`](docs/spikes/).
 `HoldEscrow.sol` is not written yet.
 
 ## Layout

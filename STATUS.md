@@ -40,10 +40,21 @@ One section per person, appended daily. Landed / next / blocked.
   Nastier sub-finding: a rejected delete returns SUCCESS at the transaction level and reports the
   refusal only in the return code. Discard the code and the hold pays out twice.
 
+- **Spike 5 PASSED (caveat closure).** The owner contract can also cancel via the redirect path
+  (code 22). The DEPLOYING EOA cannot delete its own contract's schedule — `INVALID_SIGNATURE` on
+  both paths, so not even we can cancel a buyer's refund. `admin_key` decoded off the schedule
+  record is the creating contract's ContractID: evidence, not inference.
+- **Harness bug found and fixed.** Amendment 3's backoff only retried on HTTP errors; a 200 carrying
+  stale data recorded a successful delete as a failure. Now polls on a predicate. Spike 4 re-run
+  against the fixed harness, because there the staleness biased toward a false PASS.
+- `% 3600` boundary check removed — dead code, it could never fire.
+- Session summary written: `docs/SESSION-01.md`.
+
 **Open questions carried forward**
-- `% 3600 == 0` in the boundary skip is a subset of `% 60 == 0` and can never fire independently.
-  Did Alex mean a band around the hour?
-- The jitter fallback and the mirror-node backoff are both untested — neither path ever executed.
+- The jitter fallback has still never executed. Testnet is uncongested. Needs a mocked HSS.
+- `scheduleCall`'s `uint64 value` is inferred to be tinybars, not measured — both spikes passed
+  zero. Pin it before `refund()` moves real money.
+- Claim and refund landing in the same second: a `HoldEscrow` concern for the adversarial tests.
 
 ---
 
