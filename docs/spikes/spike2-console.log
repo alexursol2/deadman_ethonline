@@ -1,0 +1,40 @@
+
+  contract       0x47A1a21fb01CCbd00a729937a352dB3986E1CA2c
+  pingCount now  1
+
+  === 2a: contract deletes via 0x16b deleteSchedule(address) ===
+    armed 0.0.10395764 (0x00000000000000000000000000000000009Ea074) expiring 1788719685
+    https://hashscan.io/testnet/schedule/0.0.10395764
+
+    control read before cancelling:
+    exists after 1 attempt(s): deleted=false executed_timestamp=null
+
+    calling tryCancelViaHss(0x00000000000000000000000000000000009Ea074)...
+    callOk=true code=22 returnData=0x0000000000000000000000000000000000000000000000000000000000000016
+    https://hashscan.io/testnet/transaction/0xc6994e61fcbdfdc6ded06136416da3dc28c067d3cb361b2d8ecfdc54e3ebb441
+
+    re-reading after cancel:
+    exists after 1 attempt(s): deleted=true executed_timestamp=null
+
+  Cancel reported success. Waiting 347s past the expiry second to
+  confirm the schedule stays dead rather than merely being marked deleted...
+    exists after 1 attempt(s): deleted=true executed_timestamp=null
+
+  pingCount before 1 / after 1
+  executed_timestamp null
+
+  SPIKE 2 — contract cancels its own schedule
+  ------------------------------------------------------------------------
+  [PASS] a contract-side delete path returned SUCCESS (22)
+         expected: 2a, or 2c as fallback
+         actual:   2a (0x16b deleteSchedule(address))
+  [PASS] mirror node shows deleted: true
+         expected: true
+         actual:   true
+  [PASS] the schedule never executed after its expiry second
+         expected: pingCount unchanged, executed_timestamp null
+         actual:   true
+  ------------------------------------------------------------------------
+  ALL CONDITIONS MET
+
+  evidence -> docs/spikes/spike2-result.json

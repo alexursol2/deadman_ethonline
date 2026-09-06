@@ -38,7 +38,29 @@ Known solutions we did not build, and why:
   extension, and the challenge window would itself be a second HIP-1215 schedule — the same
   primitive rather than a new keeper. **This is our documented next step.**
 
-Further limits get added here as the spikes find them. This section grows; it does not shrink.
+### Limits the spikes found
+
+**The jitter fallback is untested.** When the requested second is saturated, `arm()` walks
+exponential-backoff candidates looking for a free one. Testnet is uncongested, so that path has
+never executed against a real network — `probesUsed` was `0` on every run. It has unit tests against
+a mocked Schedule Service; it does not have evidence. We are not claiming otherwise.
+
+**Opening a hold is expensive.** The `scheduleCall` precompile needs ~1.45M gas of its own
+([measured](docs/spikes/gas-probe.json)), so the x402 settlement that opens a hold has to carry
+several million gas. Anyone integrating should budget for that rather than discovering it.
+
+**`scheduleCall` does revert, in one case HIP-1215 does not mention.** The HIP says it never reverts
+and returns failure codes instead. That holds for business failures — a saturated second returns
+`SCHEDULE_EXPIRY_IS_BUSY`. Starved of gas it reverts with *empty returndata* and consumes everything
+forwarded to it. A contract that checks only the returned code will misread gas starvation as its
+own bug. Ours checks both.
+
+**HBAR has two scales and the EVM shows you one of them.** Inside a contract, `address(this).balance`
+is in tinybars (1e8/HBAR). Over JSON-RPC, `eth_getBalance` is in weibars (1e18/HBAR). Solidity's
+`ether` literal is 1e18, so `balance >= 5 ether` in a Hedera contract can never pass. We got this
+wrong first time; [`units-probe.js`](contracts/scripts/units-probe.cjs) reproduces it.
+
+Further limits get added here as we find them. This section grows; it does not shrink.
 
 ## Status
 

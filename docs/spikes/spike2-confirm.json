@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "scheduleEntityId": "0.0.10395764",
+  "scheduleHashscan": "https://hashscan.io/testnet/schedule/0.0.10395764",
+  "expirySecond": 1788719685,
+  "secondsPastExpiry": 60,
+  "pingCountBefore": "1",
+  "pingCountAfter": "1",
+  "deleted": true,
+  "executedTimestamp": null,
+  "confirmedAt": "2026-09-06T18:35:45.473Z"
+}
