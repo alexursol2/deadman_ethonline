@@ -21,6 +21,17 @@ const {
   fmtTinybar,
 } = require("./lib.cjs");
 
+/**
+ * Transaction gas for arm().
+ *
+ * Measured on testnet (scripts/gas-probe.cjs): the scheduleCall precompile needs
+ * ~1.45M gas of its own, regardless of the gasLimit we ask for on the SCHEDULED
+ * call. EIP-150 forwards only 63/64 of what remains, so a 1.5M transaction hands
+ * the precompile ~1.457M and lands inside the failure band — which is exactly how
+ * the first attempt failed. 5M leaves real headroom.
+ */
+const ARM_TX_GAS = 5_000_000;
+
 const DELAY_SECONDS = 60;
 const GAS_LIMIT = 150_000;
 const TAG = ethers.encodeBytes32String("spike1");
@@ -79,7 +90,7 @@ async function main() {
 
   // 3. Arm.
   console.log(`\n  arming: ping() at now + ${DELAY_SECONDS}s, gasLimit ${GAS_LIMIT}...`);
-  const armTx = await contract.arm(DELAY_SECONDS, GAS_LIMIT, TAG, { gasLimit: 1_500_000 });
+  const armTx = await contract.arm(DELAY_SECONDS, GAS_LIMIT, TAG, { gasLimit: ARM_TX_GAS });
   const armReceipt = await armTx.wait();
   const armed = findEvent(contract, armReceipt, "Armed");
   if (!armed) throw new Error(`No Armed event in ${armTx.hash}. Check HssRaw in the receipt.`);

@@ -33,6 +33,11 @@ const {
   report,
 } = require("./lib.cjs");
 
+/** See spike1-arm.cjs — scheduleCall needs ~1.45M gas of its own. */
+const ARM_TX_GAS = 5_000_000;
+/** deleteSchedule is a system-contract call too; do not starve it. */
+const CANCEL_TX_GAS = 4_000_000;
+
 const DELAY_SECONDS = 300;
 const GAS_LIMIT = 150_000;
 const HSS_ADDRESS = "0x000000000000000000000000000000000000016b";
@@ -42,7 +47,7 @@ const SEL_DELETE_REDIRECT = "0xc61dea85";
 /** Arm one schedule and return everything we need to talk about it. */
 async function armOne(contract, tag) {
   const tx = await contract.arm(DELAY_SECONDS, GAS_LIMIT, ethers.encodeBytes32String(tag), {
-    gasLimit: 1_500_000,
+    gasLimit: ARM_TX_GAS,
   });
   const receipt = await tx.wait();
   const ev = findEvent(contract, receipt, "Armed");
@@ -81,7 +86,7 @@ async function tryCancel(contract, path, scheduleAddress) {
   console.log(`\n    calling ${fn}(${scheduleAddress})...`);
   let txHash = null;
   try {
-    const tx = await contract[fn](scheduleAddress, { gasLimit: 1_000_000 });
+    const tx = await contract[fn](scheduleAddress, { gasLimit: CANCEL_TX_GAS });
     txHash = tx.hash;
     const receipt = await tx.wait();
     const ev = findEvent(contract, receipt, "CancelAttempt");
@@ -107,7 +112,7 @@ async function tryCancel(contract, path, scheduleAddress) {
 async function eoaCancel(signer, label, to, data) {
   console.log(`\n    ${label}: EOA -> ${to} ${data}`);
   try {
-    const tx = await signer.sendTransaction({ to, data, gasLimit: 1_000_000 });
+    const tx = await signer.sendTransaction({ to, data, gasLimit: CANCEL_TX_GAS });
     const receipt = await tx.wait();
     console.log(`    tx ${tx.hash} status ${receipt.status}`);
     return { label, txHash: tx.hash, txStatus: receipt.status, success: receipt.status === 1 };

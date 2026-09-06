@@ -1,0 +1,11 @@
+{
+  "contract": "0x47A1a21fb01CCbd00a729937a352dB3986E1CA2c",
+  "addressThisBalance_tinybar": "2000000000",
+  "ethGetBalance_weibar": "20000000000000000000",
+  "ratio": "10000000000",
+  "expectedRatio": "10000000000",
+  "confirmed": true,
+  "hbarFromEvmValue": 20,
+  "hbarFromRpcValue": 20,
+  "probedAt": "2026-09-06T18:23:49.176Z"
+}

@@ -21,7 +21,9 @@ module.exports = {
       accounts,
       // eth_estimateGas on HashIO under-quotes and fails in ways that look like
       // contract bugs. Every transaction carries an explicit gas limit instead.
-      gas: 3_000_000,
+      // Hedera system-contract calls are expensive: scheduleCall alone needs
+      // ~1.45M gas. Anything that touches 0x16b sets its own higher limit.
+      gas: 5_000_000,
       timeout: 120_000,
     },
   },
