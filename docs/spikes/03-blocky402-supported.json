@@ -1,0 +1,37 @@
+{
+  "kinds": [
+    {
+      "x402Version": 2,
+      "scheme": "exact",
+      "network": "eip155:80002"
+    },
+    {
+      "x402Version": 2,
+      "scheme": "exact",
+      "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+      "extra": {
+        "feePayer": "7B6Q2MvcJvNcy1A13wHmAzmmdo3L8DVriaXML7bvkojm"
+      }
+    },
+    {
+      "x402Version": 2,
+      "scheme": "exact",
+      "network": "hedera:testnet",
+      "extra": {
+        "feePayer": "0.0.7162784"
+      }
+    }
+  ],
+  "extensions": [],
+  "signers": {
+    "eip155:*": [
+      "0xDCF7D72C2eE049DE4269ac6AAf925F33efdA18de"
+    ],
+    "solana:*": [
+      "7B6Q2MvcJvNcy1A13wHmAzmmdo3L8DVriaXML7bvkojm"
+    ],
+    "hedera:*": [
+      "0.0.7162784"
+    ]
+  }
+}
