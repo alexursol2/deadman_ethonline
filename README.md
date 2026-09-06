@@ -55,6 +55,13 @@ and returns failure codes instead. That holds for business failures — a satura
 forwarded to it. A contract that checks only the returned code will misread gas starvation as its
 own bug. Ours checks both.
 
+**A rejected `deleteSchedule` looks like a successful transaction.** Only the creating contract
+can delete its own schedule — verified, a stranger gets `INVALID_SIGNATURE`
+([spike 4](docs/spikes/04-third-party-delete.md)) — but the refusal arrives as a *return code*, not
+a revert. The transaction succeeds. A contract that discards that code will believe it cancelled a
+refund that is still armed, pay the seller, and then have the refund fire and pay the buyer too. We
+revert on anything other than `22`.
+
 **HBAR has two scales and the EVM shows you one of them.** Inside a contract, `address(this).balance`
 is in tinybars (1e8/HBAR). Over JSON-RPC, `eth_getBalance` is in weibars (1e18/HBAR). Solidity's
 `ether` literal is 1e18, so `balance >= 5 ether` in a Hedera contract can never pass. We got this

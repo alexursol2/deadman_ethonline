@@ -70,10 +70,18 @@ async function main() {
   const attackerEoa = ethers.Wallet.createRandom().connect(ethers.provider);
   console.log(`\n  attacker EOA      ${attackerEoa.address}  (freshly generated, unrelated)`);
   console.log(`  funding it with ${FUND_ATTACKER_HBAR} HBAR...`);
+  // 2,000,000, not 21,000. A transfer to an address Hedera has never seen also
+  // CREATES the account (lazy/hollow creation), and that costs far more than an
+  // EVM value transfer. At 300,000 it reverts having burned the lot, with no
+  // reason string. Same class of trap as the scheduleCall gas floor.
+  //
+  // Worth carrying to the frontend: the brief's Privy gotcha — "a fresh Privy
+  // wallet's EVM address needs an activated Hedera account" — is this, and it
+  // will fail the same way if the activating transfer is sent with default gas.
   const fundTx = await operator.sendTransaction({
     to: attackerEoa.address,
     value: ethers.parseEther(FUND_ATTACKER_HBAR),
-    gasLimit: 300_000,
+    gasLimit: 2_000_000,
   });
   await fundTx.wait();
   const attackerBal = weibarToTinybar(await ethers.provider.getBalance(attackerEoa.address));

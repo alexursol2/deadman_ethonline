@@ -1,0 +1,140 @@
+{
+  "passed": true,
+  "breached": false,
+  "victimContract": "0x47A1a21fb01CCbd00a729937a352dB3986E1CA2c",
+  "attackerEoa": "0xb491449Acc817Cd19Ba3602a8A196b1462502fd6",
+  "attackerContract": "0x9C37335D8aac6ce5834B1F1036fAcE440283721d",
+  "scheduleEntityId": "0.0.10395872",
+  "scheduleAddress": "0x00000000000000000000000000000000009ea0e0",
+  "scheduleHashscan": "https://hashscan.io/testnet/schedule/0.0.10395872",
+  "expirySecond": 1788720657,
+  "controlRecord": {
+    "admin_key": {
+      "_type": "ProtobufEncoded",
+      "key": "0a0518bbc0fa04"
+    },
+    "deleted": false,
+    "consensus_timestamp": "1788720059.301675106",
+    "creator_account_id": "0.0.10393158",
+    "executed_timestamp": null,
+    "expiration_time": "1788720657.000000000",
+    "memo": "",
+    "payer_account_id": "0.0.10395707",
+    "schedule_id": "0.0.10395872",
+    "signatures": [],
+    "transaction_body": "GkIKFiIUR6GiH7Acy9AKcpk3o1LbOYbhyiwQ8JMJIiQz1CXEc3Bpa2U0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "wait_for_expiry": true
+  },
+  "cells": {
+    "3a": {
+      "id": "3a",
+      "label": "unrelated EOA -> 0x16b deleteSchedule(address)",
+      "txHash": "0x1cb65f77951786af7b9194ca92812f7ad334f6498212e11d7b01c028cbab3bf7",
+      "txStatus": 1,
+      "threw": null,
+      "succeeded": false,
+      "gasUsed": "92850",
+      "recordAfter": {
+        "admin_key": {
+          "_type": "ProtobufEncoded",
+          "key": "0a0518bbc0fa04"
+        },
+        "deleted": false,
+        "consensus_timestamp": "1788720059.301675106",
+        "creator_account_id": "0.0.10393158",
+        "executed_timestamp": null,
+        "expiration_time": "1788720657.000000000",
+        "memo": "",
+        "payer_account_id": "0.0.10395707",
+        "schedule_id": "0.0.10395872",
+        "signatures": [],
+        "transaction_body": "GkIKFiIUR6GiH7Acy9AKcpk3o1LbOYbhyiwQ8JMJIiQz1CXEc3Bpa2U0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "wait_for_expiry": true
+      }
+    },
+    "3b": {
+      "id": "3b",
+      "label": "unrelated EOA -> redirect deleteSchedule() on the schedule",
+      "txHash": "0x80a3309ed1788c518623de620b660a692589d3b959adf63a3d5db4a1e7fbec18",
+      "txStatus": 1,
+      "threw": null,
+      "succeeded": false,
+      "gasUsed": "95432",
+      "recordAfter": {
+        "admin_key": {
+          "_type": "ProtobufEncoded",
+          "key": "0a0518bbc0fa04"
+        },
+        "deleted": false,
+        "consensus_timestamp": "1788720059.301675106",
+        "creator_account_id": "0.0.10393158",
+        "executed_timestamp": null,
+        "expiration_time": "1788720657.000000000",
+        "memo": "",
+        "payer_account_id": "0.0.10395707",
+        "schedule_id": "0.0.10395872",
+        "signatures": [],
+        "transaction_body": "GkIKFiIUR6GiH7Acy9AKcpk3o1LbOYbhyiwQ8JMJIiQz1CXEc3Bpa2U0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "wait_for_expiry": true
+      }
+    },
+    "3c": {
+      "id": "3c",
+      "label": "unrelated CONTRACT -> 0x16b deleteSchedule(address)",
+      "txHash": "0x89fbb9b064a82b131af8a5d41f6cd586544d002d48b408fdd2be0325dde4a76d",
+      "callOk": true,
+      "code": "7",
+      "returnData": "0x0000000000000000000000000000000000000000000000000000000000000007",
+      "threw": null,
+      "succeeded": false,
+      "txStatus": 1,
+      "recordAfter": {
+        "admin_key": {
+          "_type": "ProtobufEncoded",
+          "key": "0a0518bbc0fa04"
+        },
+        "deleted": false,
+        "consensus_timestamp": "1788720059.301675106",
+        "creator_account_id": "0.0.10393158",
+        "executed_timestamp": null,
+        "expiration_time": "1788720657.000000000",
+        "memo": "",
+        "payer_account_id": "0.0.10395707",
+        "schedule_id": "0.0.10395872",
+        "signatures": [],
+        "transaction_body": "GkIKFiIUR6GiH7Acy9AKcpk3o1LbOYbhyiwQ8JMJIiQz1CXEc3Bpa2U0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "wait_for_expiry": true
+      }
+    },
+    "3d": {
+      "id": "3d",
+      "label": "unrelated CONTRACT -> redirect deleteSchedule()",
+      "txHash": "0xd0459618c3b983bc564137708aa20e97eb60ed07d8e954fbf496b14611c99128",
+      "callOk": true,
+      "code": "7",
+      "returnData": "0x0000000000000000000000000000000000000000000000000000000000000007",
+      "threw": null,
+      "succeeded": false,
+      "txStatus": 1,
+      "recordAfter": {
+        "admin_key": {
+          "_type": "ProtobufEncoded",
+          "key": "0a0518bbc0fa04"
+        },
+        "deleted": false,
+        "consensus_timestamp": "1788720059.301675106",
+        "creator_account_id": "0.0.10393158",
+        "executed_timestamp": null,
+        "expiration_time": "1788720657.000000000",
+        "memo": "",
+        "payer_account_id": "0.0.10395707",
+        "schedule_id": "0.0.10395872",
+        "signatures": [],
+        "transaction_body": "GkIKFiIUR6GiH7Acy9AKcpk3o1LbOYbhyiwQ8JMJIiQz1CXEc3Bpa2U0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "wait_for_expiry": true
+      }
+    }
+  },
+  "cleanedUp": true,
+  "ranAt": "2026-09-06T18:41:35.987Z"
+}

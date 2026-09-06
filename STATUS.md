@@ -34,9 +34,13 @@ One section per person, appended daily. Landed / next / blocked.
 
 **Blocked** — nothing.
 
+- **Spike 4 PASSED (the DoS question).** No third party can delete our schedule — unrelated EOA and
+  unrelated contract, both delete paths, all four rejected with `INVALID_SIGNATURE`. Deletion is
+  gated on the schedule's admin key, which is the creating contract. `refund()` is safe.
+  Nastier sub-finding: a rejected delete returns SUCCESS at the transaction level and reports the
+  refusal only in the return code. Discard the code and the hold pays out twice.
+
 **Open questions carried forward**
-- Can a third party delete someone else's schedule? If yes it is a DoS on the refund guarantee.
-  Must be answered before `refund()` is written.
 - `% 3600 == 0` in the boundary skip is a subset of `% 60 == 0` and can never fire independently.
   Did Alex mean a band around the hour?
 - The jitter fallback and the mirror-node backoff are both untested — neither path ever executed.
