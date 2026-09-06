@@ -91,13 +91,19 @@ Hedera account. Send HBAR to the alias before it can transact."* That activating
 the same silent, expensive way if it is sent with a default gas limit. Worth handing to whoever
 wires up Privy before they lose an afternoon to it.
 
+## Re-run against a fixed harness
+
+The first run read the mirror **once** after each attempt. That is unsafe in this direction: a
+lagging mirror would show a *successful attack* as a refusal — a false PASS on a security test.
+[Spike 5](05-caveat-closure.md) found and fixed that harness bug, and this spike was re-run with a
+17.5-second polling window per cell. All four cells still refused. Schedule
+[`0.0.10396004`](https://hashscan.io/testnet/schedule/0.0.10396004), attacker EOA
+`0xA3Fd4Ea7…13377E`, attacker contract `0xF2f33ec6…a7De25`. The numbers above are from the first
+run; the verdict is the re-run's.
+
 ## What this does not cover
 
 - One schedule, one moment, an uncongested testnet.
-- We tested strangers. We did **not** test whether the *deploying EOA* can delete a schedule its own
-  contract created — that sits between "owner" and "stranger" and is a different question. It does
-  not block `refund()`, since nothing in the design needs it, but it matters if we ever want an
-  operator-side escape hatch.
-- Admin-key inheritance is inferred from `INVALID_SIGNATURE`, not read from a spec. The code is
-  consistent with a signature check and nothing else we observed contradicts it, but HIP-1215 does
-  not document the rule and we should say "consistent with" rather than "is" until Hedera confirms.
+- **Closed since:** the deploying EOA cannot delete its own contract's schedule either
+  ([5b](05-caveat-closure.md)), and the admin key is read directly off the schedule record as the
+  creating contract's ContractID rather than inferred from a response code ([5c](05-caveat-closure.md)).

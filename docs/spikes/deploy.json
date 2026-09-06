@@ -1,15 +1,15 @@
 {
   "network": "hedera-testnet",
   "chainId": "296",
-  "contract": "0x47A1a21fb01CCbd00a729937a352dB3986E1CA2c",
-  "hashscan": "https://hashscan.io/testnet/contract/0x47A1a21fb01CCbd00a729937a352dB3986E1CA2c",
+  "contract": "0x1eC142a50E44aafD7b234001bC31747ED83B1467",
+  "hashscan": "https://hashscan.io/testnet/contract/0x1eC142a50E44aafD7b234001bC31747ED83B1467",
   "deployer": "0x130C7B90E7aCE67680AfDd17355BF58812146435",
-  "deployTx": "0xaeb55d3968a9bd319b155710de79706e4ee4f4768f774c251ea37af5c9d21ea6",
-  "fundTx": "0xb90e8c7f2fcb010384cf22dd2f9c64943c6a3597110f8edef4053f0e035ffa74",
+  "deployTx": "0x12b4749d98094db96a3ae889f3e2acd9dc6cf85371b179fc9944b25596b827b2",
+  "fundTx": "0x4c6d46a3059bdae55b43eb70e7fd59c6def0f3ba312e89e765d4dd3549aba594",
   "fundedHbar": "20.0",
   "contractBalanceWeibar": "20000000000000000000",
   "contractBalanceTinybar": "2000000000",
   "minBalanceTinybar": "500000000",
   "evmVersion": "cancun",
-  "deployedAt": "2026-09-06T18:23:46.756Z"
+  "deployedAt": "2026-09-06T18:49:02.039Z"
 }

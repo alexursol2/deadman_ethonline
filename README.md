@@ -62,6 +62,17 @@ a revert. The transaction succeeds. A contract that discards that code will beli
 refund that is still armed, pay the seller, and then have the refund fire and pay the buyer too. We
 revert on anything other than `22`.
 
+**Not even we can cancel a refund.** Deletion is gated on the schedule's admin key, which is the
+creating contract's ContractID — read directly off the schedule record, not inferred
+([spike 5c](docs/spikes/05-caveat-closure.md)). A stranger is refused, and so is the EOA that
+deployed the contract ([5b](docs/spikes/05-caveat-closure.md)). Once a hold is open the operator has
+no cancel to be compelled into using.
+
+**The mirror node returns stale data with a 200.** Reading a schedule immediately after changing it
+can show the old state. We hit this and briefly recorded a successful delete as a failure. Anything
+that reads back a state change — the live board especially — must poll on the condition, not on the
+HTTP status.
+
 **HBAR has two scales and the EVM shows you one of them.** Inside a contract, `address(this).balance`
 is in tinybars (1e8/HBAR). Over JSON-RPC, `eth_getBalance` is in weibars (1e18/HBAR). Solidity's
 `ether` literal is 1e18, so `balance >= 5 ether` in a Hedera contract can never pass. We got this

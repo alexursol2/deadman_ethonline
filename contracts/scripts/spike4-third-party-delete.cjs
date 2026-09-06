@@ -15,6 +15,7 @@ const {
   saveEvidence,
   findEvent,
   mirrorGet,
+  mirrorGetUntil,
   toEntityId,
   scheduleLink,
   txLink,
@@ -46,11 +47,24 @@ async function readSchedule(entityId, label) {
   return { exists: true, attemptsUsed: res.attemptsUsed, record: res.body };
 }
 
+/**
+ * Wait out a full polling window for a deletion to show up. If none appears, the
+ * attempt was genuinely refused.
+ *
+ * Reading once is not good enough here and the first run of spike 5 proved it:
+ * the mirror returned 200 with deleted=false several seconds after a delete that
+ * had already succeeded. In THIS spike that staleness biases toward a false PASS
+ * — a successful attack would look like a refusal — which is the worst direction
+ * for the error to run.
+ */
 async function stillAlive(entityId, label) {
-  const { record } = await readSchedule(entityId, label);
-  const alive = record && record.deleted !== true;
-  console.log(`      mirror: deleted=${record?.deleted} executed=${record?.executed_timestamp} -> ${alive ? "STILL ALIVE" : "GONE"}`);
-  return { alive, record };
+  const res = await mirrorGetUntil(`/api/v1/schedules/${entityId}`, (r) => r.deleted === true, { label });
+  const alive = !res.settled;
+  console.log(
+    `      mirror: deleted=${res.record?.deleted} executed=${res.record?.executed_timestamp} ` +
+      `after ${res.waitedMs}ms of polling -> ${alive ? "STILL ALIVE" : "GONE"}`,
+  );
+  return { alive, record: res.record, watchedMs: res.waitedMs };
 }
 
 async function main() {

@@ -21,6 +21,7 @@ const {
   saveEvidence,
   findEvent,
   mirrorGet,
+  mirrorGetUntil,
   toEntityId,
   scheduleLink,
   txLink,
@@ -112,9 +113,13 @@ async function main() {
   const aEv = findEvent(victim, aReceipt, "CancelAttempt");
   console.log(`    callOk=${aEv?.args.callOk} code=${aEv?.args.code} returnData=${aEv?.args.returnData}`);
   console.log(`    ${txLink(aTx.hash)}`);
-  const aAfter = await readSchedule(a.entityId, "5a after");
-  console.log(`    mirror: deleted=${aAfter.record?.deleted}`);
-  const passed5a = aEv?.args.callOk === true && aEv?.args.code === 22n && aAfter.record?.deleted === true;
+  // Poll until deleted flips, rather than reading once. The mirror lagged here
+  // on the first run and a single read recorded a successful delete as a failure.
+  const aAfter = await mirrorGetUntil(`/api/v1/schedules/${a.entityId}`, (r) => r.deleted === true, {
+    label: "5a deleted",
+  });
+  console.log(`    mirror: deleted=${aAfter.record?.deleted} after ${aAfter.attemptsUsed} poll(s), ${aAfter.waitedMs}ms`);
+  const passed5a = aEv?.args.callOk === true && aEv?.args.code === 22n && aAfter.settled;
   results["5a"] = {
     entityId: a.entityId,
     hashscan: scheduleLink(a.entityId),
@@ -151,10 +156,16 @@ async function main() {
       rec.threw = String(err.shortMessage || err.message).slice(0, 200);
       console.log(`      THREW ${rec.threw}`);
     }
-    const after = await readSchedule(b.entityId, `5b ${id} after`);
+    // Inverted use of the same poller: wait out the full window for a deletion
+    // to appear. If it never does, the attempt really was refused — rather than
+    // the mirror simply not having caught up yet.
+    const after = await mirrorGetUntil(`/api/v1/schedules/${b.entityId}`, (r) => r.deleted === true, {
+      label: `5b ${id} watch`,
+    });
     rec.deletedAfter = after.record?.deleted ?? null;
-    rec.refused = after.record?.deleted !== true;
-    console.log(`      mirror: deleted=${rec.deletedAfter} -> ${rec.refused ? "REFUSED" : "*** DELETED ***"}`);
+    rec.refused = !after.settled;
+    rec.watchedMs = after.waitedMs;
+    console.log(`      mirror: deleted=${rec.deletedAfter} after ${after.waitedMs}ms of polling -> ${rec.refused ? "REFUSED" : "*** DELETED ***"}`);
     attempts[id] = rec;
   }
   const passed5b = attempts.hss.refused && attempts.redirect.refused;
@@ -186,8 +197,8 @@ async function main() {
   let cleanedUp = false;
   try {
     await (await victim.tryCancelViaHss(b.scheduleAddress, { gasLimit: ATTEMPT_GAS })).wait();
-    const after = await readSchedule(b.entityId, "cleanup");
-    cleanedUp = after.record?.deleted === true;
+    const after = await mirrorGetUntil(`/api/v1/schedules/${b.entityId}`, (r) => r.deleted === true, { label: "cleanup" });
+    cleanedUp = after.settled;
   } catch (err) {
     console.log(`    cleanup threw ${err.shortMessage || err.message}`);
   }

@@ -77,6 +77,42 @@ async function mirrorGet(urlPath, { attempts = 3, delaysMs = [2000, 4000, 8000],
   return { ...last, attemptsUsed: attempts, waitedMs, url };
 }
 
+/**
+ * GET the mirror node until a PREDICATE holds, not merely until HTTP succeeds.
+ *
+ * The original mirrorGet retried only on a failed request, which turned out to
+ * be half of amendment 3. A 200 carrying STALE data is the other half, and it is
+ * the dangerous one: spike 5a read `deleted: false` immediately after a delete
+ * that had returned code 22, and only settled to `deleted: true` seconds later.
+ * Retrying on HTTP status alone would have recorded that as a failed delete.
+ *
+ * Both directions of assertion use this same primitive:
+ *   confirming a change  -> settled === true means the change landed
+ *   confirming stability -> settled === false after the full window means it
+ *                           never happened, which is the result you wanted
+ *
+ * @returns {{settled: boolean, record: any, attemptsUsed: number, waitedMs: number}}
+ */
+async function mirrorGetUntil(urlPath, predicate, { attempts = 5, delaysMs = [1500, 3000, 5000, 8000], label = "" } = {}) {
+  let record = null;
+  let waitedMs = 0;
+  for (let i = 0; i < attempts; i++) {
+    if (i > 0) {
+      const wait = delaysMs[i - 1] ?? delaysMs[delaysMs.length - 1];
+      await sleep(wait);
+      waitedMs += wait;
+    }
+    const res = await mirrorGet(urlPath, { attempts: 2, label });
+    if (res.ok) {
+      record = res.body;
+      if (predicate(record)) {
+        return { settled: true, record, attemptsUsed: i + 1, waitedMs };
+      }
+    }
+  }
+  return { settled: false, record, attemptsUsed: attempts, waitedMs };
+}
+
 /** Write an evidence file to docs/spikes/ and say where it went. */
 function saveEvidence(name, data) {
   fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
@@ -152,6 +188,7 @@ module.exports = {
   txLink,
   sleep,
   mirrorGet,
+  mirrorGetUntil,
   saveEvidence,
   readEvidence,
   findEvent,

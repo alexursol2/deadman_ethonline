@@ -62,30 +62,32 @@ the mechanism are now confirmed on live testnet rather than inferred from the HI
 
 ## What this result does NOT establish
 
-**The redirect path (2c) was never exercised.** `deleteSchedule()` (`0xc61dea85`) called on the
-schedule address is implemented in `SpikeSchedule` and tested by nothing, because 2a passed and the
-script correctly stopped. Same for the EOA diagnostics 2b and 2d. We know one door opens; we have
-not tried the others. That is the right outcome for a spike and the wrong thing to describe as
-"both paths verified".
+**The redirect path (2c) was not exercised here**, because 2a passed and the script correctly
+stopped. **Closed since:** the owner contract cancels successfully via the redirect path too, code
+22 ([spike 5a](05-caveat-closure.md)), so both delete paths now work from the owner. The EOA cells
+2b and 2d are covered by [spike 4](04-third-party-delete.md) and [5b](05-caveat-closure.md), which
+found strangers *and* our own deployer refused.
 
-**The mirror-node backoff never fired.** Every read in this spike succeeded on the **first attempt**,
-including the control read taken immediately after arming — so amendment 3's retry-with-backoff is,
-like the jitter fallback, untested code. It cost nothing to add and it removes a false-negative mode
-that would have looked exactly like a design failure, so it stays. But testnet's mirror node was
-promptly consistent today, and the live board should not assume that.
+**The mirror-node backoff never fired here** — every read succeeded on the first attempt. That
+turned out to be luck rather than a promptly consistent network: [spike 5](05-caveat-closure.md)
+hit a stale-but-successful read that a single GET recorded as a failed delete, and the backoff as
+originally written did not catch it because it only retried on HTTP *errors*. Now fixed to poll on
+a predicate. The live board should assume staleness, not hope for its absence.
 
 **One cancel, one schedule, one moment.** This is a single observation on an uncongested testnet. It
 does not establish behaviour under load, nor the race the brief calls out — claim and refund landing
 in the same second, where exactly one must win. That race is a `HoldEscrow` concern and belongs in
 Igor's Wednesday adversarial tests, not here.
 
-## Open question for the escrow
+## Open question for the escrow — since answered
 
-Deletion succeeded when called by the contract that created the schedule. We did **not** test whether
-an unrelated contract or a third-party EOA can delete someone else's schedule. If it can, that is a
-denial-of-service on the refund guarantee: an attacker deletes the booked refund and the buyer's
-money sits in the hold with nothing to release it.
+Deletion succeeded when called by the contract that created the schedule. That left the obvious
+follow-up: can an unrelated contract or a third-party EOA delete someone else's schedule? If so it
+is a denial-of-service on the refund guarantee — an attacker deletes the booked refund and the
+buyer's money sits in the hold with nothing to release it. The difference between "the network will
+refund you" and "the network will refund you unless somebody cancels it first".
 
-Cheap to test, and it should be tested before `refund()` is written — it is the difference between
-"the network will refund you" and "the network will refund you unless somebody cancels it first".
-Added to the Wednesday review list.
+**Answered: no.** See [spike 4](04-third-party-delete.md) — strangers are refused with
+`INVALID_SIGNATURE` on both delete paths — and [spike 5](05-caveat-closure.md), where the admin key
+is read off the schedule record as the creating contract's ContractID, and our own deploying EOA is
+refused too.
