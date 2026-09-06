@@ -24,6 +24,19 @@ const txLink = (hash) => `${HASHSCAN}/transaction/${hash}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
+ * UNITS. Measured on testnet, not assumed — see scripts/units-probe.cjs.
+ *   address(this).balance  (EVM, inside a contract) -> TINYBARS, 1e8 per HBAR
+ *   eth_getBalance         (JSON-RPC, from outside) -> WEIBARS,  1e18 per HBAR
+ * The same account reads 1e10x larger over JSON-RPC. Never compare one to the
+ * other; convert first. Every variable below is named for its unit.
+ */
+const WEIBAR_PER_TINYBAR = 10n ** 10n;
+const TINYBAR_PER_HBAR = 10n ** 8n;
+const weibarToTinybar = (w) => BigInt(w) / WEIBAR_PER_TINYBAR;
+const tinybarToHbar = (t) => Number(BigInt(t)) / 1e8;
+const fmtTinybar = (t) => `${tinybarToHbar(t)} HBAR (${BigInt(t).toString()} tinybar)`;
+
+/**
  * GET the mirror node with retry and backoff.
  *
  * Review amendment 3: the mirror node is eventually consistent, so a 404 on the
@@ -129,6 +142,11 @@ module.exports = {
   MIRROR,
   HASHSCAN,
   toEntityId,
+  WEIBAR_PER_TINYBAR,
+  TINYBAR_PER_HBAR,
+  weibarToTinybar,
+  tinybarToHbar,
+  fmtTinybar,
   scheduleLink,
   contractLink,
   txLink,

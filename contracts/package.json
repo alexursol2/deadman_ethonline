@@ -10,7 +10,8 @@
     "deploy": "hardhat run scripts/deploy.cjs --network hederaTestnet",
     "spike1:arm": "hardhat run scripts/spike1-arm.cjs --network hederaTestnet",
     "spike1:verify": "hardhat run scripts/spike1-verify.cjs --network hederaTestnet",
-    "spike2": "hardhat run scripts/spike2.cjs --network hederaTestnet"
+    "spike2": "hardhat run scripts/spike2.cjs --network hederaTestnet",
+    "units": "hardhat run scripts/units-probe.cjs --network hederaTestnet"
   },
   "keywords": [],
   "author": "",

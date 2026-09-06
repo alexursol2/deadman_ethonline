@@ -57,10 +57,26 @@ contract SpikeSchedule {
      *      rests on. So arming asserts a floor rather than trusting the operator
      *      to have funded it.
      *
-     *      On Hedera the EVM sees balances in weibars, 1 HBAR = 1e18 weibar, so
-     *      `ether` units read as HBAR here.
+     *      UNITS — measured on testnet, not assumed. See scripts/units-probe.cjs:
+     *
+     *        address(this).balance  (EVM BALANCE opcode) -> TINYBARS, 1e8 per HBAR
+     *        eth_getBalance         (JSON-RPC)           -> WEIBARS,  1e18 per HBAR
+     *
+     *      The two differ by exactly 1e10 for the same account. Solidity's
+     *      `ether` literal is 1e18, so `balance >= 5 ether` compares tinybars
+     *      against weibars and can never pass. That is how the first arm() on
+     *      testnet reverted: InsufficientBalance(2000000000, 5000000000000000000)
+     *      for a contract holding 20 HBAR.
+     *
+     *      It failed loudly, which was luck. The same mistake in the other
+     *      direction — a weibar quantity compared against a tinybar threshold —
+     *      passes trivially and would put an underfunded contract into the demo.
+     *      So every on-chain HBAR quantity in this codebase is named for its unit.
      */
-    uint256 public constant MIN_BALANCE = 5 ether; // 5 HBAR
+    uint256 internal constant TINYBAR_PER_HBAR = 1e8;
+
+    /// @notice Arming floor, in TINYBARS. 5 HBAR.
+    uint256 public constant MIN_BALANCE_TINYBAR = 5 * TINYBAR_PER_HBAR;
 
     /// @dev Matches the HIP-1215 reference retry pattern.
     uint256 internal constant MAX_PROBES = 8;
@@ -100,7 +116,7 @@ contract SpikeSchedule {
         uint256 requestedSecond,
         int64 code,
         uint8 probesUsed,
-        uint256 balanceAtArm,
+        uint256 balanceAtArmTinybar,
         uint8 seedSource,
         bytes32 prevrandao,
         bytes32 prngSeed
@@ -123,7 +139,8 @@ contract SpikeSchedule {
                                ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error InsufficientBalance(uint256 have, uint256 need);
+    /// @dev Both values in TINYBARS. See the MIN_BALANCE_TINYBAR note.
+    error InsufficientBalance(uint256 haveTinybar, uint256 needTinybar);
     error NoUnsaturatedSecond(uint256 requestedSecond, uint256 probes);
     error HssCallReverted(string fn, bytes returnData);
     error HssMalformedReturn(string fn, bytes returnData);
@@ -165,7 +182,7 @@ contract SpikeSchedule {
         returns (address scheduleAddress, uint256 expirySecond, uint8 probesUsed)
     {
         uint256 bal = address(this).balance;
-        if (bal < MIN_BALANCE) revert InsufficientBalance(bal, MIN_BALANCE);
+        if (bal < MIN_BALANCE_TINYBAR) revert InsufficientBalance(bal, MIN_BALANCE_TINYBAR);
 
         armCount += 1;
 
@@ -186,7 +203,11 @@ contract SpikeSchedule {
                 address(this),
                 expirySecond,
                 gasLimit,
-                uint64(0), // no value on the scheduled call; see plan note on tinybar vs weibar
+                // Value in TINYBARS: uint64 cannot hold a weibar amount of any
+                // size (total supply in weibar overflows it), and the EVM balance
+                // opcode is tinybars, so the parameter must be tinybars too.
+                // Inferred, not exercised — both spikes pass zero.
+                uint64(0),
                 innerCallData
             )
         );
@@ -405,7 +426,8 @@ contract SpikeSchedule {
         emit Funded(msg.sender, msg.value, address(this).balance);
     }
 
-    function balance() external view returns (uint256) {
+    /// @notice Contract balance in TINYBARS, as the EVM sees it.
+    function balanceTinybar() external view returns (uint256) {
         return address(this).balance;
     }
 }

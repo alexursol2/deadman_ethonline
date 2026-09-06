@@ -17,6 +17,8 @@ const {
   jsonSafe,
   sleep,
   SEED_SOURCE,
+  weibarToTinybar,
+  fmtTinybar,
 } = require("./lib.cjs");
 
 const DELAY_SECONDS = 60;
@@ -30,12 +32,15 @@ async function main() {
 
   const contract = await ethers.getContractAt("SpikeSchedule", address, signer);
 
-  // 1. Balance, printed. The contract pays execution gas from here.
-  const balance = await ethers.provider.getBalance(address);
-  const minBalance = await contract.MIN_BALANCE();
-  console.log(`\n  contract       ${address}`);
-  console.log(`  balance        ${ethers.formatEther(balance)} HBAR (floor ${ethers.formatEther(minBalance)})`);
-  if (balance < minBalance) throw new Error("Below MIN_BALANCE — arm() would revert. Fund the contract.");
+  // 1. Balance, printed. The contract pays execution gas from here at expiry.
+  //    RPC gives weibars, the contract compares tinybars — convert, do not guess.
+  const balanceTinybar = weibarToTinybar(await ethers.provider.getBalance(address));
+  const minTinybar = await contract.MIN_BALANCE_TINYBAR();
+  console.log(`
+  contract       ${address}`);
+  console.log(`  balance        ${fmtTinybar(balanceTinybar)}`);
+  console.log(`  arming floor   ${fmtTinybar(minTinybar)}`);
+  if (balanceTinybar < minTinybar) throw new Error("Below the arming floor — arm() would revert.");
 
   // 2. Randomness probe, twice, in different blocks (amendment 1).
   //    One sample cannot distinguish "constant" from "happened to be that value".
@@ -119,7 +124,7 @@ async function main() {
       seedSource: SEED_SOURCE[Number(armed.args.seedSource)] ?? String(armed.args.seedSource),
       prevrandaoAtArm: armed.args.prevrandao,
       seedUsed: armed.args.prngSeed,
-      balanceAtArmWei: armed.args.balanceAtArm,
+      balanceAtArmTinybar: armed.args.balanceAtArmTinybar,
       randomnessProbes: probes,
       prevrandaoVerdict,
       prngVerdict,

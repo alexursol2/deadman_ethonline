@@ -9,7 +9,7 @@
  */
 const hre = require("hardhat");
 const { ethers } = hre;
-const { saveEvidence, contractLink, txLink, jsonSafe } = require("./lib.cjs");
+const { saveEvidence, contractLink, txLink, jsonSafe, weibarToTinybar, fmtTinybar } = require("./lib.cjs");
 
 const FUND_HBAR = "20.0";
 
@@ -50,16 +50,23 @@ async function main() {
   const fundReceipt = await fundTx.wait();
   console.log(`  tx             ${fundTx.hash}  (status ${fundReceipt.status})`);
 
-  // Assert the funding actually landed, rather than assuming the transfer worked.
-  const contractBalance = await ethers.provider.getBalance(address);
-  const minBalance = await contract.MIN_BALANCE();
-  console.log(`\n  contract bal   ${ethers.formatEther(contractBalance)} HBAR`);
-  console.log(`  MIN_BALANCE    ${ethers.formatEther(minBalance)} HBAR`);
+  // Assert the funding landed, rather than assuming the transfer worked.
+  //
+  // getBalance is WEIBARS; the contract's floor is TINYBARS. Converting before
+  // comparing is the whole point — comparing them raw is what made the first
+  // arm() revert on testnet, and the reverse mistake passes silently and puts
+  // an underfunded contract into the demo.
+  const balanceWeibar = await ethers.provider.getBalance(address);
+  const balanceTinybar = weibarToTinybar(balanceWeibar);
+  const minTinybar = await contract.MIN_BALANCE_TINYBAR();
+  console.log(`
+  contract bal   ${fmtTinybar(balanceTinybar)}`);
+  console.log(`  arming floor   ${fmtTinybar(minTinybar)}`);
 
-  if (contractBalance < minBalance) {
+  if (balanceTinybar < minTinybar) {
     throw new Error(
-      `Contract balance ${ethers.formatEther(contractBalance)} is below MIN_BALANCE ` +
-        `${ethers.formatEther(minBalance)}. arm() would revert. Fund it before continuing.`,
+      `Contract holds ${fmtTinybar(balanceTinybar)}, below the arming floor of ` +
+        `${fmtTinybar(minTinybar)}. arm() would revert. Fund it before continuing.`,
     );
   }
   console.log(`  OK — above the arming floor.`);
@@ -75,8 +82,9 @@ async function main() {
       deployTx: deployTx.hash,
       fundTx: fundTx.hash,
       fundedHbar: FUND_HBAR,
-      contractBalanceWei: contractBalance,
-      minBalanceWei: minBalance,
+      contractBalanceWeibar: balanceWeibar,
+      contractBalanceTinybar: balanceTinybar,
+      minBalanceTinybar: minTinybar,
       evmVersion: hre.config.solidity.compilers?.[0]?.settings?.evmVersion ?? "unknown",
       deployedAt: new Date().toISOString(),
     }),
