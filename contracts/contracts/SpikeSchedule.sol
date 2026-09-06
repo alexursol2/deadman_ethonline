@@ -266,18 +266,17 @@ contract SpikeSchedule {
     }
 
     /**
-     * @dev Boundary skip: scheduled work clusters on minute and hour boundaries,
-     *      not decimal ones.
+     * @dev Boundary skip: scheduled work clusters on minute boundaries, not
+     *      decimal ones.
      *
-     *      NOTE for review: `% 3600 == 0` is a strict subset of `% 60 == 0`, so
-     *      the hour test can never fire independently of the minute test. It is
-     *      written out as specified rather than silently collapsed, because the
-     *      intent may have been a *band* around the hour rather than the exact
-     *      second. Open question for Alex — see the spike report.
+     *      A `% 3600 == 0` hour test was specified alongside this and has been
+     *      removed: every hour boundary is also a minute boundary, so it was a
+     *      strict subset of the check above and could never fire. Alex confirmed
+     *      the removal. If hour-adjacent clustering turns out to be real, the fix
+     *      is a *band* around the hour, not an exact-second test.
      */
     function _secondUsable(uint256 candidate, uint256 gasLimit) internal view returns (bool) {
         if (candidate % 60 == 0) return false;
-        if (candidate % 3600 == 0) return false;
         return _hasCapacity(candidate, gasLimit);
     }
 
