@@ -26,6 +26,12 @@ contract SpikeSchedule {
     /// @dev Hedera Schedule Service, entity 0.0.363.
     address internal constant HSS = address(0x16b);
 
+    /// @dev HIP-351 pseudorandom number generator, entity 0.0.361.
+    address internal constant PRNG = address(0x169);
+
+    /// @dev keccak256("getPseudorandomSeed()")[0:4]
+    bytes4 internal constant SEL_PRNG_SEED = 0xd83bf9a1;
+
     /// @dev keccak256("scheduleCall(address,uint256,uint256,uint64,bytes)")[0:4]
     bytes4 internal constant SEL_SCHEDULE_CALL = 0x6f5bfde8;
     /// @dev keccak256("hasScheduleCapacity(uint256,uint256)")[0:4]
@@ -59,6 +65,11 @@ contract SpikeSchedule {
     /// @dev Matches the HIP-1215 reference retry pattern.
     uint256 internal constant MAX_PROBES = 8;
 
+    /// @dev Which randomness source seeded the jitter. Recorded, never assumed.
+    uint8 internal constant SEED_PRNG = 1;       // 0x169, HIP-351
+    uint8 internal constant SEED_PREVRANDAO = 2; // block.prevrandao
+    uint8 internal constant SEED_FALLBACK = 3;   // keccak of local state
+
     /*//////////////////////////////////////////////////////////////
                                STATE
     //////////////////////////////////////////////////////////////*/
@@ -89,10 +100,15 @@ contract SpikeSchedule {
         uint256 requestedSecond,
         int64 code,
         uint8 probesUsed,
-        uint256 balanceAtArm
+        uint256 balanceAtArm,
+        uint8 seedSource,
+        bytes32 prevrandao,
+        bytes32 prngSeed
     );
 
     event Pinged(bytes32 indexed tag, address sender, uint256 timestamp, uint256 count);
+
+    event RandomnessProbe(bytes32 prevrandao, bytes32 prngSeed, bool prngOk, uint256 blockNumber, uint256 timestamp);
 
     /// @dev `path` is "hss" or "redirect". Emitted whether or not the delete worked.
     event CancelAttempt(string path, address scheduleAddress, bool callOk, int64 code, bytes returnData);
@@ -154,7 +170,13 @@ contract SpikeSchedule {
         armCount += 1;
 
         uint256 requestedSecond = block.timestamp + delaySeconds;
-        (expirySecond, probesUsed) = _findAvailableSecond(requestedSecond, gasLimit);
+
+        // Seeded eagerly, even when the first candidate is free, so the spike
+        // records both randomness sources from inside a REAL scheduling
+        // transaction rather than from a staticcall. HoldEscrow should make this
+        // lazy — it is a wasted system-contract call whenever probing is not needed.
+        (bytes32 seed, uint8 seedSource) = _jitterSeedWithSource();
+        (expirySecond, probesUsed) = _findAvailableSecond(requestedSecond, gasLimit, seed);
 
         bytes memory innerCallData = abi.encodeWithSelector(this.ping.selector, tag);
 
@@ -183,7 +205,18 @@ contract SpikeSchedule {
         if (code != HSS_SUCCESS) revert HssNotSuccess("scheduleCall", code);
         if (scheduleAddress == address(0)) revert HssZeroScheduleAddress(code);
 
-        emit Armed(tag, scheduleAddress, expirySecond, requestedSecond, code, probesUsed, bal);
+        emit Armed(
+            tag,
+            scheduleAddress,
+            expirySecond,
+            requestedSecond,
+            code,
+            probesUsed,
+            bal,
+            seedSource,
+            bytes32(block.prevrandao),
+            seed
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -195,14 +228,13 @@ contract SpikeSchedule {
      *      non-manipulable jitter so contracts probing the same ideal second
      *      scatter instead of stampeding — plus the boundary skip below.
      */
-    function _findAvailableSecond(uint256 requestedSecond, uint256 gasLimit)
+    function _findAvailableSecond(uint256 requestedSecond, uint256 gasLimit, bytes32 seed)
         internal
         view
         returns (uint256 second, uint8 probesUsed)
     {
         if (_secondUsable(requestedSecond, gasLimit)) return (requestedSecond, 0);
 
-        bytes32 seed = _jitterSeed();
         for (uint256 i = 0; i < MAX_PROBES; ++i) {
             uint256 baseDelay = 1 << i; // 1, 2, 4, 8, ...
             uint256 jitter = uint256(uint16(uint256(keccak256(abi.encodePacked(seed, i))))) % baseDelay;
@@ -246,10 +278,60 @@ contract SpikeSchedule {
         return abi.decode(ret, (bool));
     }
 
-    function _jitterSeed() internal view virtual returns (bytes32) {
-        // Deterministic fallback. Replaced by a probed randomness source in the
-        // next commit — we do not assume prevrandao works on Hedera.
-        return keccak256(abi.encodePacked(block.timestamp, address(this), armCount, pingCount));
+    /*//////////////////////////////////////////////////////////////
+                            RANDOMNESS PROBE
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Read BOTH candidate randomness sources and report which works.
+     *
+     * @dev We do not assume `block.prevrandao` is meaningful on Hedera. Hedera's
+     *      system contract docs document a PRNG at 0x169 (HIP-351) and never
+     *      mention PREVRANDAO, while HIP-1215's own findAvailableSecond example
+     *      seeds its jitter from prevrandao. Both cannot be the right answer, so
+     *      we measure instead of picking.
+     *
+     *      Why it matters more than it looks: jitter seeded from a CONSTANT is
+     *      worse than no jitter at all. Every contract using the reference
+     *      pattern would derive the same "random" offsets and pick the same
+     *      second, converting the intended scatter into a stampede — while
+     *      appearing to work. A zero or constant prevrandao is therefore a
+     *      finding worth reporting to Hedera, not a detail.
+     *
+     *      Not a view: the 0x169 call is a system-contract call that mutates
+     *      network-side state, so it must run in a transaction to be trustworthy.
+     */
+    function probeRandomness() external returns (bytes32 prevrandao, bytes32 prngSeed, bool prngOk) {
+        prevrandao = bytes32(block.prevrandao);
+        (prngOk, prngSeed) = _prngSeed();
+        emit RandomnessProbe(prevrandao, prngSeed, prngOk, block.number, block.timestamp);
+    }
+
+    function _prngSeed() internal returns (bool ok, bytes32 seed) {
+        (bool callOk, bytes memory ret) = PRNG.call(abi.encodeWithSelector(SEL_PRNG_SEED));
+        if (!callOk || ret.length < 32) return (false, bytes32(0));
+        seed = abi.decode(ret, (bytes32));
+        // A zero seed is a working call returning a useless value. Treat it as
+        // unusable rather than silently seeding jitter with nothing.
+        ok = seed != bytes32(0);
+    }
+
+    /**
+     * @dev Seed selection, in preference order, with the choice recorded in the
+     *      Armed event so the spike report can say which one actually carried a
+     *      real scheduling transaction rather than which one a staticcall liked.
+     *
+     *      HoldEscrow will hard-code whichever source the spike proves. Silent
+     *      fallback is fine for a spike and is not fine for the refund path.
+     */
+    function _jitterSeedWithSource() internal returns (bytes32 seed, uint8 source) {
+        (bool prngOk, bytes32 prngSeed) = _prngSeed();
+        if (prngOk) return (prngSeed, SEED_PRNG);
+
+        bytes32 pr = bytes32(block.prevrandao);
+        if (pr != bytes32(0)) return (pr, SEED_PREVRANDAO);
+
+        return (keccak256(abi.encodePacked(block.timestamp, address(this), armCount, pingCount)), SEED_FALLBACK);
     }
 
     /*//////////////////////////////////////////////////////////////
