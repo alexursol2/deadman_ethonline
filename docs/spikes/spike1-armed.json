@@ -1,0 +1,40 @@
+{
+  "contract": "0x47A1a21fb01CCbd00a729937a352dB3986E1CA2c",
+  "armTx": "0x2bfc0250d126a8be610c55846f78eb7a1f5b09516bcabddc3be98eebedc91656",
+  "armTxHashscan": "https://hashscan.io/testnet/transaction/0x2bfc0250d126a8be610c55846f78eb7a1f5b09516bcabddc3be98eebedc91656",
+  "code": "22",
+  "scheduleAddress": "0x00000000000000000000000000000000009Ea064",
+  "scheduleEntityId": "0.0.10395748",
+  "scheduleHashscan": "https://hashscan.io/testnet/schedule/0.0.10395748",
+  "requestedSecond": 1788719349,
+  "expirySecond": 1788719349,
+  "movedBySeconds": 0,
+  "probesUsed": 0,
+  "jitterFallbackExercised": false,
+  "seedSource": "prng-0x169",
+  "prevrandaoAtArm": "0x4bf950959b81629df8e713f5ffaf946fbaff118944dbd73ba8338182e9932b50",
+  "seedUsed": "0x4bf950959b81629df8e713f5ffaf946fbaff118944dbd73ba8338182e9932b50",
+  "balanceAtArmTinybar": "2000000000",
+  "randomnessProbes": [
+    {
+      "attempt": 1,
+      "txHash": "0x62289ce90859dc0cffcfff6a1a1159ba05ba5e0c2b19dbe728490766d7100a88",
+      "blockNumber": 40190164,
+      "prevrandao": "0xcf52f9a2a6926fc49cd1d0d34d0a52afb636c8d05dc0123e0510dcd2ee9f8d4d",
+      "prngSeed": "0xcf52f9a2a6926fc49cd1d0d34d0a52afb636c8d05dc0123e0510dcd2ee9f8d4d",
+      "prngOk": true
+    },
+    {
+      "attempt": 2,
+      "txHash": "0x3e4c4926fc91dd22a01ee35cf8ab915f23732c8c19745505956b422cd3b6030f",
+      "blockNumber": 40190169,
+      "prevrandao": "0x6f7021e3872b2f7a8c8432cf879599af140ff7d549ba584e5927f46e82063013",
+      "prngSeed": "0x6f7021e3872b2f7a8c8432cf879599af140ff7d549ba584e5927f46e82063013",
+      "prngOk": true
+    }
+  ],
+  "prevrandaoVerdict": "prevrandao: USABLE (non-zero, varies across blocks)",
+  "prngVerdict": "prng 0x169 : USABLE (non-zero, varies across blocks)",
+  "armedAt": "2026-09-06T18:28:17.218Z",
+  "expiresAtIso": "2026-09-06T18:29:09.000Z"
+}
