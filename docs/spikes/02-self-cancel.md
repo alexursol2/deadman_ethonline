@@ -37,9 +37,17 @@ present on the mirror node with `deleted: false` and `executed_timestamp: null`.
 never executed" would be equally consistent with "it was never created", and we would have concluded
 the happy path works on the strength of a schedule that never existed.
 
-Evidence: [`spike2-confirm.json`](spike2-confirm.json),
+Evidence: [`spike2-result.json`](spike2-result.json), [`spike2-confirm.json`](spike2-confirm.json),
 [`spike2-final-schedule.json`](spike2-final-schedule.json),
 [`spike2-console.log`](spike2-console.log).
+
+**Confirmed twice, independently.** `spike2.cjs` ran the whole sequence including its own wait past
+the expiry second and recorded `passed: true, neverExecuted: true`. Separately, `spike2-confirm.cjs`
+re-read the same schedule from a cold start 60 seconds past expiry and reached the same verdict. The
+duplication was accidental — mid-run the console output looked truncated and the run appeared to have
+been killed, so the confirmation was written as a recovery path. It completed fine. Two independent
+reads of the same outcome is a better position than one, and `spike2-confirm.cjs` stays because the
+multi-minute wait is a real fragility in a script we will re-run.
 
 ## What this means for the design
 

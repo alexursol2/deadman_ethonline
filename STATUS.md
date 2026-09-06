@@ -22,10 +22,24 @@ One section per person, appended daily. Landed / next / blocked.
   `docs/spikes/03-facilitator.md`.
 - PR #1 opened.
 
-**Next** — spikes 1 and 2, the moment the key exists.
+- **Spike 1 PASSED.** Schedule `0.0.10395748` executed unattended, 4ms into its target second.
+  `signatures: []`, `wait_for_expiry: true`, `pingCount` incremented. The network runs the call
+  as the scheduling contract itself, so `refund()` can be gated on `msg.sender == address(this)`.
+- **Spike 2 PASSED.** Schedule `0.0.10395764` cancelled by the contract that armed it, code 22,
+  stayed dead past its expiry second. Risk #2 does not materialise; the happy path holds.
+- Two bugs found and fixed on the way: EVM balances are tinybars not weibars, and `scheduleCall`
+  needs ~1.45M gas of its own and reverts with empty returndata when starved.
 
-**Blocked** — `.env` needs a funded ECDSA testnet key. Everything else is ready and waiting on it.
-A sandbox fault wiped the repo directory mid-session, which took the earlier `.env` with it.
+**Next** — Igor's Monday design review. Then `HoldEscrow.sol`, which is NOT started.
+
+**Blocked** — nothing.
+
+**Open questions carried forward**
+- Can a third party delete someone else's schedule? If yes it is a DoS on the refund guarantee.
+  Must be answered before `refund()` is written.
+- `% 3600 == 0` in the boundary skip is a subset of `% 60 == 0` and can never fire independently.
+  Did Alex mean a band around the hour?
+- The jitter fallback and the mirror-node backoff are both untested — neither path ever executed.
 
 ---
 
