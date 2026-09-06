@@ -1,0 +1,25 @@
+{
+  "name": "deadman-contracts",
+  "version": "0.1.0",
+  "description": "Deadman — HIP-1215 spike contracts",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "selectors": "node scripts/verify-selectors.mjs",
+    "build": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.cjs --network hederaTestnet",
+    "spike1:arm": "hardhat run scripts/spike1-arm.cjs --network hederaTestnet",
+    "spike1:verify": "hardhat run scripts/spike1-verify.cjs --network hederaTestnet",
+    "spike2": "hardhat run scripts/spike2.cjs --network hederaTestnet"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "private": "true",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^16.6.1",
+    "ethers": "^6.17.0",
+    "hardhat": "^2.29.1"
+  }
+}
