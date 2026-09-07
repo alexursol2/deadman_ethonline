@@ -124,6 +124,17 @@ contract SpikeSchedule {
 
     event Pinged(bytes32 indexed tag, address sender, uint256 timestamp, uint256 count);
 
+    /// @dev `value` is echoed exactly as passed to scheduleCall, in whatever unit that turns out
+    ///      to be — the point of the spike is that we do not yet know. balanceBefore is TINYBARS.
+    event ArmedWithValue(
+        address indexed to,
+        address scheduleAddress,
+        uint256 expirySecond,
+        int64 code,
+        uint64 value,
+        uint256 balanceBeforeTinybar
+    );
+
     event RandomnessProbe(bytes32 prevrandao, bytes32 prngSeed, bool prngOk, uint256 blockNumber, uint256 timestamp);
 
     /// @dev `path` is "hss" or "redirect". Emitted whether or not the delete worked.
@@ -238,6 +249,73 @@ contract SpikeSchedule {
             bytes32(block.prevrandao),
             seed
         );
+    }
+
+    /**
+     * @notice Arm a scheduled call that CARRIES VALUE to an arbitrary target.
+     *
+     * @dev Exists to measure the unit of scheduleCall's `uint64 value`. Every
+     *      other arming in this repo passes zero, which is why the unit is still
+     *      an inference rather than a measurement.
+     *
+     *      The balance floor is raised to MIN_BALANCE_TINYBAR + value. That
+     *      addition assumes value is in tinybars — the hypothesis under test. If
+     *      the hypothesis is wrong the assert is merely conservative, never
+     *      permissive, so it cannot mask the result it is meant to measure.
+     *
+     * @param value the value parameter, passed through UNCONVERTED and unjudged
+     */
+    function armWithValue(
+        address to,
+        uint256 delaySeconds,
+        uint256 gasLimit,
+        uint64 value,
+        bytes calldata callData
+    ) external returns (address scheduleAddress, uint256 expirySecond, uint8 probesUsed) {
+        uint256 bal = address(this).balance;
+        uint256 floor = MIN_BALANCE_TINYBAR + uint256(value);
+        if (bal < floor) revert InsufficientBalance(bal, floor);
+
+        armCount += 1;
+
+        uint256 requestedSecond = block.timestamp + delaySeconds;
+        (bytes32 seed, ) = _jitterSeedWithSource();
+        (expirySecond, probesUsed) = _findAvailableSecond(requestedSecond, gasLimit, seed);
+
+        int64 code;
+        (code, scheduleAddress) = _doScheduleCall(to, expirySecond, gasLimit, value, callData);
+
+        emit ArmedWithValue(to, scheduleAddress, expirySecond, code, value, bal);
+    }
+
+    /**
+     * @dev The raw scheduleCall, extracted so armWithValue does not blow the
+     *      stack. Kept separate from arm()'s inline copy on purpose: arm() is
+     *      the code path already proven on testnet by spike 1, and refactoring
+     *      it to share this helper would invalidate that evidence for no gain in
+     *      a contract that is being thrown away. HoldEscrow will have exactly
+     *      one of these.
+     *
+     *      Asserts BOTH halves of the return, as everywhere else: a saturated
+     *      second yields a zero address with a non-22 code and no revert.
+     */
+    function _doScheduleCall(
+        address to,
+        uint256 expirySecond,
+        uint256 gasLimit,
+        uint64 value,
+        bytes calldata callData
+    ) internal returns (int64 code, address scheduleAddress) {
+        (bool callOk, bytes memory ret) =
+            HSS.call(abi.encodeWithSelector(SEL_SCHEDULE_CALL, to, expirySecond, gasLimit, value, callData));
+        emit HssRaw("scheduleCall(value)", callOk, ret);
+
+        if (!callOk) revert HssCallReverted("scheduleCall(value)", ret);
+        if (ret.length < 64) revert HssMalformedReturn("scheduleCall(value)", ret);
+
+        (code, scheduleAddress) = abi.decode(ret, (int64, address));
+        if (code != HSS_SUCCESS) revert HssNotSuccess("scheduleCall(value)", code);
+        if (scheduleAddress == address(0)) revert HssZeroScheduleAddress(code);
     }
 
     /*//////////////////////////////////////////////////////////////
