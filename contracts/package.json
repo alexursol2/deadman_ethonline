@@ -22,5 +22,8 @@
     "dotenv": "^16.6.1",
     "ethers": "^6.17.0",
     "hardhat": "^2.29.1"
+  },
+  "dependencies": {
+    "@hashgraph/sdk": "^2.81.0"
   }
 }

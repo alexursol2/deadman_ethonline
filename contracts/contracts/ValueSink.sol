@@ -16,12 +16,16 @@ pragma solidity 0.8.24;
  */
 contract ValueSink {
     uint256 public landings;
+    /// @notice How many times receive() has executed. Spike 9's measurement.
+    uint256 public receiveCalls;
     /// @notice msg.value from the most recent landing, in whatever unit the EVM reports.
     uint256 public lastMsgValue;
     /// @notice address(this).balance right after the most recent landing. TINYBARS.
     uint256 public lastBalanceTinybar;
     address public lastSender;
     bytes32 public lastTag;
+
+    event Received(address sender, uint256 msgValue, uint256 balanceAfterTinybar, uint256 receiveCalls);
 
     event Landed(
         bytes32 indexed tag,
@@ -47,5 +51,14 @@ contract ValueSink {
         return address(this).balance;
     }
 
-    receive() external payable { }
+    /**
+     * @notice Bare value transfers land here. Counted, for spike 9.
+     * @dev On the EVM a value transfer to a contract invokes receive(). A Hedera
+     *      HAPI CryptoTransfer is not an EVM transaction and may simply credit the
+     *      account without executing anything. The counter is how we tell.
+     */
+    receive() external payable {
+        receiveCalls += 1;
+        emit Received(msg.sender, msg.value, address(this).balance, receiveCalls);
+    }
 }
