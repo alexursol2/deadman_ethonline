@@ -50,6 +50,9 @@ referenced again at the line it governs. The ones that shape the code:
 | `_transition` | One compare-and-set, before any external call. `OPEN` is only ever written to a fresh monotonic id, so `CLAIMED`/`REFUNDED` are terminal by construction rather than convention. |
 | `_findAvailableSecond` | HIP-1215's own backoff, seeded from `prevrandao` (measured identical to the `0x169` PRNG on Hedera), skipping minute boundaries. |
 | `_requiredReserveTinybar` | Scales with `openHoldCount`. A flat floor would let the hundredth armed refund silently fail to fire. |
+| `_consume` | The one place a hold's money is retired. Zeroing the amount here is a second line of defence behind the CAS — and the adversarial suite proved removing the CAS alone is not enough to double-pay. |
+| `sweepReserve` | Bounded by `operatingFloatTinybar`, which only deliberate deposits increase. A settled payment arrives without executing code, so it can never be swept. |
+| `_reconcileFloat` | Clamps that float down to reality. Refund gas leaves the balance unobserved, and an overstated float would re-open the hole it closed. |
 
 `REFUND_GAS = 250_000` is 2.0x the measured worst case of 122,847 — not the estimate it replaced.
 
@@ -72,10 +75,18 @@ things the real network will not give us: a **saturated second**, a **zero sched
 with code 22**, and a **refused delete**. Every default is expressed as "zero storage means healthy",
 because `setCode` plants code without running a constructor.
 
-### `test/HoldEscrow.test.cjs` — 358 lines, 28 tests
+### `contracts/test/Mutants.sol` — the deliberately broken builds
 
-Includes the only coverage the capacity/jitter path has. Explicitly does **not** prove Hedera's unit
-semantics — locally balances are wei — and says so at the top.
+Five subclasses of `HoldEscrow`, one guard removed each, so every adversarial test can be shown to
+fail before it is trusted to pass. `NoCasCheck`, `NoCasNoZero`, `IgnoresDeleteCode`, `PushOrRevert`,
+`FlatReserve`, plus a `NoReceiver` payee. Never deployed.
+
+### `test/HoldEscrow.test.cjs` and `test/adversarial.test.cjs` — 53 tests
+
+Includes the only coverage the capacity/jitter path has, and the mutation-tested adversarial suite
+([write-up](spikes/15-adversarial.md)), which found a real sweep vulnerability. Explicitly does
+**not** prove Hedera's unit semantics — locally balances are wei — and 4.1 is a same-block test of
+the compare-and-set, not a race against Hedera's scheduler.
 
 ### `scripts/` — 2,900 lines
 
@@ -199,7 +210,8 @@ fired unattended, and the video is cut. The first two are already true.
 
 | Gap | Why |
 |---|---|
-| **Igor has reviewed nothing** | Plan 04 and `HoldEscrow.sol` were both written after that gate was set. `docs/reviews/` is empty. The oldest outstanding item. |
+| **No public deployment** | The single qualification gate still unmet. `render.yaml` has never been applied; it needs a hosting account. |
+| Igor's review | Superseded — Alex is doing the review work himself, and the adversarial suite (plan 09) is the first half of it. |
 | The saturated-second path has never run on a real network | Testnet is uncongested. The minute-boundary skip *has* fired on testnet; the congestion branch has only the mocked HSS. |
 | Claim and refund in the same second | Both paths work in isolation; nothing has forced a collision. Belongs in the adversarial tests. |
 | No public deployment | Prepared — Dockerfile, blueprint, least-privilege key, admin auth. Needs a hosting account. |

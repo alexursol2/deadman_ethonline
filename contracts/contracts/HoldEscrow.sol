@@ -2,6 +2,18 @@
 pragma solidity 0.8.24;
 
 /**
+ * @dev A note on `virtual`. Four internal guards — _transition, _deleteSchedule,
+ *      _payOrCredit and _requiredReserveTinybar — are marked virtual purely as a
+ *      testing seam. contracts/test/Mutants.sol subclasses this contract and
+ *      removes one guard each, and the adversarial suite asserts every test goes
+ *      RED against its mutant before being trusted GREEN here.
+ *
+ *      It costs nothing at runtime and changes no deployed behaviour. The
+ *      alternative was copying 784 lines four times, which would have tested the
+ *      copies rather than this contract. Nothing outside contracts/test/
+ *      inherits from it.
+ */
+/**
  * @title HoldEscrow
  * @notice An x402 hold that arms its own refund with the Hedera network.
  *
@@ -165,6 +177,26 @@ contract HoldEscrow {
     /// @notice Sum of credited-but-unwithdrawn balances.
     uint256 public totalWithdrawableTinybar;
 
+    /**
+     * @notice Funds deposited DELIBERATELY as operating float, via fund() or a
+     *         plain EVM transfer. The only money sweepReserve may ever take.
+     *
+     * @dev Found by the adversarial suite. A settled x402 payment arrives as a
+     *      HAPI CryptoTransfer, which credits this contract WITHOUT running its
+     *      code (C12) — so it increments nothing and carries no identity. Before
+     *      its openHold runs it is attributed to nothing, and a balance-based
+     *      "free" figure counts it as sweepable. The owner could take a buyer's
+     *      money out of the window between settlement and arming.
+     *
+     *      Tracking deliberate deposits separately closes it: money that arrived
+     *      without executing code can never be swept, only attributed to its
+     *      payer via attributeOrphanedPayment.
+     *
+     *      Consequence for operators: top the float up with fund(), not with a
+     *      HAPI transfer, or it will not be recoverable.
+     */
+    uint256 public operatingFloatTinybar;
+
     address public owner;
     /// @notice Who may open holds. On by default — see plan 04 §Q6 and §8.1.
     bool public allowlistEnabled = true;
@@ -236,6 +268,7 @@ contract HoldEscrow {
     error NothingToWithdraw();
     error WithdrawFailed();
     error WouldBreakSolvency(uint256 requested, uint256 available);
+    error ExceedsOperatingFloat(uint256 requested, uint256 float);
     error NoUnsaturatedSecond(uint64 requestedSecond);
     error HssCallReverted(string fn, bytes returnData);
     error HssMalformedReturn(string fn, bytes returnData);
@@ -333,6 +366,11 @@ contract HoldEscrow {
         h.deadline = armedDeadline;
         h.scheduleAddress = scheduleAddress;
 
+        // The payment is now inside totalLocked, so free is tight here. This is
+        // the one moment where the float can be corrected for gas already spent
+        // without a pending settlement making the figure loose.
+        _reconcileFloat();
+
         _emitOpened(holdId, p, armedDeadline, scheduleAddress, probesUsed);
     }
 
@@ -389,13 +427,9 @@ contract HoldEscrow {
         Hold storage h = _transition(holdId, Status.OPEN, Status.CLAIMED);
         if (keccak256(abi.encodePacked(k)) != h.hKey) revert BadKey(holdId);
 
-        uint64 amount = h.amountTinybar;
         address payee = h.payee;
         address scheduleAddress = h.scheduleAddress;
-
-        h.amountTinybar = 0;
-        totalLockedTinybar -= amount;
-        openHoldCount -= 1;
+        uint64 amount = _consume(h);
 
         // C3: a refused delete returns a CODE, it does not revert. Discarding it
         // would pay the seller AND let the refund fire — the hold pays out twice.
@@ -435,11 +469,8 @@ contract HoldEscrow {
 
         _transition(holdId, Status.OPEN, Status.REFUNDED);
 
-        uint64 amount = h.amountTinybar;
         address payer = h.payer;
-        h.amountTinybar = 0;
-        totalLockedTinybar -= amount;
-        openHoldCount -= 1;
+        uint64 amount = _consume(h);
 
         _payOrCredit(holdId, payer, amount);
         emit Refunded(holdId, payer, amount);
@@ -463,11 +494,8 @@ contract HoldEscrow {
 
         _transition(holdId, Status.OPEN, Status.REFUNDED);
 
-        uint64 amount = h.amountTinybar;
         address payer = h.payer;
-        h.amountTinybar = 0;
-        totalLockedTinybar -= amount;
-        openHoldCount -= 1;
+        uint64 amount = _consume(h);
 
         withdrawableTinybar[payer] += amount;
         totalWithdrawableTinybar += amount;
@@ -484,7 +512,7 @@ contract HoldEscrow {
      *      `value` is in tinybars: the EVM's own unit on Hedera, the same one
      *      address(this).balance and msg.value use (C5, spike 6).
      */
-    function _payOrCredit(uint256 holdId, address to, uint64 amountTinybar) internal {
+    function _payOrCredit(uint256 holdId, address to, uint64 amountTinybar) internal virtual {
         if (amountTinybar == 0) return;
         (bool ok, ) = to.call{ value: amountTinybar, gas: PAYOUT_STIPEND }("");
         if (ok) {
@@ -555,7 +583,7 @@ contract HoldEscrow {
     }
 
     /// @dev Reverts unless the delete was ACCEPTED. C3.
-    function _deleteSchedule(address scheduleAddress) internal {
+    function _deleteSchedule(address scheduleAddress) internal virtual {
         (bool callOk, bytes memory ret) =
             HSS.call(abi.encodeWithSelector(SEL_DELETE_SCHEDULE, scheduleAddress));
         if (!callOk) revert HssCallReverted("deleteSchedule", ret);
@@ -624,7 +652,26 @@ contract HoldEscrow {
      *      CLAIMED and REFUNDED are terminal by construction rather than by
      *      convention.
      */
-    function _transition(uint256 holdId, Status from, Status to) internal returns (Hold storage h) {
+    /**
+     * @dev Retire a hold's money: read the amount, zero it, and drop it out of
+     *      both running totals. Called by claim, refund and rescue, which
+     *      previously repeated these four lines each.
+     *
+     *      Zeroing here is a SECOND line of defence behind _transition's
+     *      compare-and-set, and it is load-bearing: the adversarial suite showed
+     *      that removing the CAS alone does NOT produce a double payout, because
+     *      a second entry reads amountTinybar as 0 and pays nothing (and the
+     *      openHoldCount decrement underflows). Both guards have to go before
+     *      the hold can pay twice, which is what NoCasNoZero demonstrates.
+     */
+    function _consume(Hold storage h) internal virtual returns (uint64 amount) {
+        amount = h.amountTinybar;
+        h.amountTinybar = 0;
+        totalLockedTinybar -= amount;
+        openHoldCount -= 1;
+    }
+
+    function _transition(uint256 holdId, Status from, Status to) internal virtual returns (Hold storage h) {
         h = holds[holdId];
         if (h.status != from) revert BadState(holdId, h.status, from);
         h.status = to;
@@ -654,12 +701,37 @@ contract HoldEscrow {
      *      HBAR for a value-carrying scheduled execution, spike 8 saw 0.1178 for
      *      a plain one. 0.5 HBAR is ~3.5x the worst observed.
      */
-    function _requiredReserveTinybar() internal view returns (uint256) {
+    function _requiredReserveTinybar() internal view virtual returns (uint256) {
         return uint256(minOperatingReserveTinybar) + openHoldCount * uint256(refundGasDepositTinybar);
     }
 
     function requiredReserveTinybar() external view returns (uint256) {
         return _requiredReserveTinybar();
+    }
+
+    /**
+     * @dev Pull operatingFloatTinybar back down to what the balance can justify.
+     *
+     *      The float only ever increases on a deliberate deposit, but the
+     *      contract also SPENDS from its balance to execute scheduled refunds
+     *      (C6) — gas it cannot observe and therefore cannot deduct. Left alone,
+     *      the float drifts above the real balance, and an overstated float is
+     *      exactly the hole the float was added to close: it would let a sweep
+     *      reach a settled payment again, up to the amount of gas already spent.
+     *
+     *      Clamping to free() can only ever LOWER the float, so it cannot create
+     *      sweeping room. Called at the end of openHold, where the just-settled
+     *      payment has already moved into totalLocked and free is therefore a
+     *      tight figure, and again before any sweep.
+     *
+     *      Residual, stated rather than hidden: if a settlement is sitting
+     *      unarmed at the moment of the clamp, free still counts it and the
+     *      clamp is loose by that much. The orphan path, not the sweep, is how
+     *      unarmed money is meant to leave.
+     */
+    function _reconcileFloat() internal {
+        uint256 free = _freeTinybar();
+        if (operatingFloatTinybar > free) operatingFloatTinybar = free;
     }
 
     /// @notice Settled-but-unarmed payments plus the operating float. Tinybars.
@@ -690,6 +762,7 @@ contract HoldEscrow {
 
     /// @notice Top up the operating float that pays for scheduled refund gas (C6).
     function fund() external payable {
+        operatingFloatTinybar += msg.value;
         emit Funded(msg.sender, msg.value);
     }
 
@@ -701,6 +774,9 @@ contract HoldEscrow {
      *      receives.
      */
     receive() external payable {
+        // Reached only by an EVM transfer, which is a deliberate top-up. A
+        // settled x402 payment never lands here (C12).
+        operatingFloatTinybar += msg.value;
         emit Funded(msg.sender, msg.value);
     }
 
@@ -742,9 +818,17 @@ contract HoldEscrow {
      */
     function sweepReserve(address to, uint256 amountTinybar) external onlyOwner nonReentrant {
         if (to == address(0)) revert ZeroAddress();
+        _reconcileFloat();
+        // Only deliberately-deposited float, never a settled payment that has
+        // not been armed yet.
+        if (amountTinybar > operatingFloatTinybar) {
+            revert ExceedsOperatingFloat(amountTinybar, operatingFloatTinybar);
+        }
         uint256 free = _freeTinybar();
         uint256 needed = amountTinybar + _requiredReserveTinybar();
         if (needed > free) revert WouldBreakSolvency(needed, free);
+
+        operatingFloatTinybar -= amountTinybar;
         (bool ok, ) = to.call{ value: amountTinybar }("");
         if (!ok) revert WithdrawFailed();
         emit ReserveSwept(to, amountTinybar);

@@ -311,10 +311,27 @@ describe("HoldEscrow", function () {
     });
 
     it("the owner cannot sweep below what open holds need", async function () {
-      await escrow.connect(server).openHold(await params());
-      const free = await escrow.freeTinybar();
-      await expect(escrow.sweepReserve(owner.address, free))
-        .to.be.revertedWithCustomError(escrow, "WouldBreakSolvency");
+      // Deploy fresh and fund DELIBERATELY, so the whole balance is sweepable
+      // float and the solvency bound is the guard under test. A contract whose
+      // balance arrived as a settlement has no sweepable float at all — that is
+      // the separate ExceedsOperatingFloat case below.
+      const fresh = await (await ethers.getContractFactory("HoldEscrow")).deploy();
+      await fresh.waitForDeployment();
+      await fresh.setOpener(server.address, true);
+      await fresh.fund({ value: FUND });
+      await fresh.connect(server).openHold(await params());
+
+      const free = await fresh.freeTinybar();
+      await expect(fresh.sweepReserve(owner.address, free))
+        .to.be.revertedWithCustomError(fresh, "WouldBreakSolvency");
+    });
+
+    it("a settled payment is not sweepable at all — it never became float", async function () {
+      // The balance in this suite is set directly, which is how an x402
+      // settlement arrives: credited without running any code (C12).
+      expect(await escrow.operatingFloatTinybar()).to.equal(0n);
+      await expect(escrow.sweepReserve(owner.address, 1n))
+        .to.be.revertedWithCustomError(escrow, "ExceedsOperatingFloat");
     });
 
     it("free balance never counts locked or credited funds", async function () {

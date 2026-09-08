@@ -64,6 +64,36 @@ One section per person, appended daily. Landed / next / blocked.
 - Execution gas measured: a value-carrying scheduled call consumed ~132k gas / 0.1389 HBAR, and the
   network charges for gas used rather than the limit requested.
 
+## 2026-09-09 — Alex (contract, tests)
+
+**Landed**
+
+- **The adversarial suite (plan 09, session 04 §4). 53 tests passing.** Every guard tested twice:
+  once against a mutant with that guard removed, where the attack must succeed, and once against the
+  real contract. `contracts/test/Mutants.sol` holds five deliberately broken builds.
+- **Found and fixed a real vulnerability.** `sweepReserve` could take a buyer's settled payment in
+  the window before `openHold` ran — a settlement credits the contract without executing code, so it
+  was attributed to nothing and `free` counted it. Sweeps are now bounded by `operatingFloatTinybar`,
+  which only deliberate deposits increase.
+- **Second bug inside the fix.** On testnet the float had drifted ABOVE the balance, because refund
+  gas leaves the balance unobserved. An overstated float re-opens the same hole. `_reconcileFloat()`
+  clamps it down; it can only ever lower the float.
+- **A claim that was false.** The test was written to assert the compare-and-set stops a double
+  payout. Against `NoCasCheck` the contract still paid once — two other guards catch it. Only
+  `NoCasNoZero` produces a real double payout. Both mutants kept; the write-up says so.
+- **Redeployed:** `0x1f928BF2261979A818Ade961f3b6d8aC1AAbe860` = `0.0.10426758`. Settle → openHold →
+  unattended refund re-verified: hold 1, schedule `0.0.10426770`, `signatures: []`, buyer whole.
+  The previous escrow `0xc5241034…` has the sweep bug and must not be used.
+
+**Next** — sections 2, 3, 5, 6 of the session-04 brief.
+
+**BLOCKED — section 1, the public deploy.** No deploy CLI and no cloud credentials on this machine;
+creating a Render service needs an account sign-in. Section 2 (`/web`) is gated behind it by the
+brief, so both are stalled until someone applies the blueprint. Everything else is prepared:
+`render.yaml`, `server/Dockerfile`, least-privilege seller key, token-gated admin endpoint.
+
+---
+
 ## 2026-09-08 — Alex (contract and payment path)
 
 **Landed**
