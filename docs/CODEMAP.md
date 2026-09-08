@@ -1,7 +1,26 @@
-# Code map
+# Code map — the single project reference
 
-Every file, what it does, and why it is shaped that way. Written for Igor's review and for a judge
-reading the repo cold.
+Every file, what it does and why it is shaped that way, plus the plan, the dates and the open gaps.
+Written for Igor's review and for a judge reading the repo cold.
+
+**This absorbed `docs/PROGRESS.md`, which is deleted.** Two documents describing one project drift,
+and that one already had: it still listed `HoldEscrow.sol`, `/server` and `/agent` as "not started"
+and `value`-in-tinybars as "inferred, not measured", after all four were done. Its unique content —
+the day plan, the priority order, the dates and the Hedera list — is below, with the stale parts
+corrected rather than copied. The original remains in git history at `5db2c03`.
+
+### Where things live
+
+| | |
+|---|---|
+| [`README.md`](../README.md) | The pitch, the limits, how to run it. The front door for a judge. |
+| [`STATUS.md`](../STATUS.md) | Append-only daily log, one section per person. Where *progress* goes. |
+| **this file** | The code, the plan, the dates, the open gaps. |
+| [`docs/plans/`](plans/) | Seven plans, each committed **before** its implementation. |
+| [`docs/spikes/`](spikes/) | Fifteen reports with the raw mirror-node JSON behind every number. |
+| [`docs/deploy.md`](deploy.md) | Deployment, secrets, and what a hold actually costs. |
+| [`docs/checkins/`](checkins/) | ETHGlobal check-in text. |
+| [`docs/SESSION-01.md`](SESSION-01.md) | The spike session write-up. |
 
 **Roughly 1,580 lines of Solidity, 3,000 of scripts, 790 of TypeScript services, 360 of tests**, plus
 fifteen spike reports with the raw mirror-node JSON behind every number quoted anywhere.
@@ -134,3 +153,72 @@ from a real x402 payment through Blocky402 to a network-executed refund with `si
 **Known limits, all in the README:** a hold costs the seller ~1.9 HBAR so this does not work for
 micro-payments; the refund is armed one transaction *after* the money lands, not atomically; the
 saturated-second path has never run on a real network; and we guarantee delivery, not correctness.
+
+---
+
+## The plan
+
+| Day | Alex | Igor | Frontend | Media |
+|---|---|---|---|---|
+| **Mon 8** | ~~`HoldEscrow.sol`~~ **done** — plus server, agent, verify.ts, all working on testnet | **Design review — NOT done.** `docs/reviews/` is empty | Privy wallet on chain 296, alias activation | Storyboard, README first screen |
+| **Tue 9** | ~~x402 server through Blocky402~~ **done**, fee-payer gate check confirmed | Start adversarial tests | Board shell, first hold rendering | 30-second cut, tested on an outsider |
+| **Wed 10** | ~~First real paid request end to end~~ **done Monday**; the public deploy is what remains | **Contract review**, plus the mocked HSS (mock exists, 28 tests) | Privy spend policy on the agent | Draft both partner write-ups against the rubrics |
+| **Thu 11** | HCS receipts on every state change | Finish adversarial tests, commit them | Countdown timers, mirror links, infra status panel | Rough cut |
+| **Fri 12** | **Feature freeze.** Clean-clone test. Both `FEEDBACK.md` files | **Whole-repo review from a clean clone** | Polish, mobile, empty states | Cut to 4 minutes, **test upload** |
+| **Sat 13** | Limits, hygiene gate, AI plan files. **Submit tonight** | Rehearse the shutdown demo three times cold | Final deploy, verify from a phone | Final video rendered and uploaded |
+
+**Wednesday's milestone landed on Monday.** One real paid request through the deployed escrow
+qualifies us for the track on its own, and it is done — though it went straight to the facilitator
+rather than through a *public* endpoint, so the deploy still matters.
+
+### Priority order if time runs out
+
+1. ~~Blocky402 works, one real paid request end to end~~ **done**
+2. ~~Escrow holds the payment and the scheduled refund fires unattended~~ **done**
+3. ~~Key-reveal claim that cancels the pending schedule~~ **done**
+4. Privy wallet plus spend policy
+5. HCS receipts
+6. Live board with countdowns
+7. Volume — hundreds of holds rather than a handful
+
+**Friday evening:** decide on Bazantic as the third partner, only if the escrow works, a refund has
+fired unattended, and the video is cut. The first two are already true.
+
+## Dates
+
+| When | What |
+|---|---|
+| Tue 8 Sept | Feedback Session #1. Attend with the spike results and one specific question |
+| Thu 10 Sept | Feedback Session #2 |
+| TBC | Check-in #1 and #2 on the hacker dashboard. Do not write "all good" — text ready in [`checkins/01.md`](checkins/01.md) |
+| **Sun 13 Sept, 12:00 ET** | **Submissions due.** Non-negotiable, never extended. We submit Saturday night |
+| Mon 14 Sept, 12:00–14:00 ET | Finalist judging call, 7 minutes live, if we opt in. Missing it disqualifies us |
+| Wed 16 Sept, 12:00 ET | Closing ceremony |
+
+## Still open, and named
+
+| Gap | Why |
+|---|---|
+| **Igor has reviewed nothing** | Plan 04 and `HoldEscrow.sol` were both written after that gate was set. `docs/reviews/` is empty. The oldest outstanding item. |
+| The saturated-second path has never run on a real network | Testnet is uncongested. The minute-boundary skip *has* fired on testnet; the congestion branch has only the mocked HSS. |
+| Claim and refund in the same second | Both paths work in isolation; nothing has forced a collision. Belongs in the adversarial tests. |
+| No public deployment | Prepared — Dockerfile, blueprint, least-privilege key, admin auth. Needs a hosting account. |
+| One observation each, uncongested testnet | Open by nature. Rehearse the demo cold three times. |
+
+## For the Hedera session
+
+1. A rejected `deleteSchedule` returns transaction SUCCESS. The official `payments-scheduler`
+   template ships a helper that discards the code and clears its bookkeeping regardless.
+2. `scheduleCall` reverts with **empty returndata** when starved of gas, which contradicts how the
+   HIP's "never reverts" reads. Floor ~1.45M.
+3. The delete authorisation model is undocumented. We established it empirically: the admin key is
+   the creating contract's ContractID, read off the schedule record.
+4. `hasScheduleCapacity(now + 1)` returns false despite the HIP stating a one-second minimum, and
+   false means "invalid expiry" and "saturated" indistinguishably.
+5. **x402 on Hedera cannot settle into a contract call**, so no escrow or vault on that rail can
+   take payment atomically. We can hand them the exact line in their reference implementation.
+6. Network-executed calls do **not** appear in `/contracts/{address}/results` on the mirror node —
+   a refund that fired and reverted is invisible where a dashboard would look.
+
+One question for Luke: is the saturated-second path exercisable against testnet at all, or is a
+mocked HSS the only way we test it before mainnet?
