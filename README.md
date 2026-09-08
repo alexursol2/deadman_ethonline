@@ -151,6 +151,8 @@ remaining step needs a hosting account. See [docs/deploy.md](docs/deploy.md).
 
 Still to build: the live board, Privy, and HCS receipts.
 
+A file-by-file walkthrough of the whole codebase is in [docs/CODEMAP.md](docs/CODEMAP.md).
+
 Start with
 [`docs/SESSION-01.md`](docs/SESSION-01.md) for what was verified and what was not; the individual
 reports and their raw mirror-node evidence are in [`docs/spikes/`](docs/spikes/).
