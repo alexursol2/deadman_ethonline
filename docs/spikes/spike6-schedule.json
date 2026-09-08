@@ -1,0 +1,17 @@
+{
+  "admin_key": {
+    "_type": "ProtobufEncoded",
+    "key": "0a0518acc0fb04"
+  },
+  "deleted": false,
+  "consensus_timestamp": "1788815511.655183328",
+  "creator_account_id": "0.0.10393158",
+  "executed_timestamp": "1788815571.010051208",
+  "expiration_time": "1788815571.000000000",
+  "memo": "",
+  "payer_account_id": "0.0.10412076",
+  "schedule_id": "0.0.10412082",
+  "signatures": [],
+  "transaction_body": "GkgKFiIUz8rGBFOWMGQBVm2qRVp+gQVhh9cQkKEPGIDGho8BIiQzNeJ+c3Bpa2U2AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+  "wait_for_expiry": true
+}
