@@ -73,6 +73,13 @@ of protocol cost per hold**. Anything priced under ~2 HBAR loses money on every 
 viable for API calls worth a dollar or more and **not** for the sub-cent calls x402 is most often
 pitched at. [The numbers](docs/deploy.md).
 
+**Only deliberately deposited funds can be swept by the operator.** A settled x402 payment
+arrives without executing any contract code, so between settlement and `openHold` it is
+attributed to nothing. The adversarial suite found that the owner could sweep a buyer's money out
+of that window; `sweepReserve` is now bounded by a separately tracked operating float, and
+settled-but-unarmed money can only leave via `attributeOrphanedPayment`, which credits the payer.
+[The finding](docs/spikes/15-adversarial.md).
+
 **The saturated-second path has never run on a real network.** When the requested second is full,
 `openHold` walks exponential-backoff candidates looking for a free one. Testnet is uncongested, so
 `hasScheduleCapacity` has returned true on every probe we have ever made. The minute-boundary skip
