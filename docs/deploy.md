@@ -72,9 +72,12 @@ the board stays up while the server is down, which is the thing the demo is show
 
    | Secret | Value |
    |---|---|
-   | `ESCROW_ADDRESS` | `0xc5241034C7c060361B0223B3c6d77d0A4bC8Ef09` |
+   | `ESCROW_ADDRESS` | `0x1f928BF2261979A818Ade961f3b6d8aC1AAbe860` |
    | `SELLER_PRIVATE_KEY` | copy from `.env` — **not** `HEDERA_OPERATOR_KEY` |
    | `ADMIN_TOKEN` | any long random string |
+
+   **Not** `0xc5241034…` — that escrow predates the sweep fix and must not be used
+   ([why](spikes/15-adversarial.md)).
 
 3. Deploy. `healthCheckPath` is `/health`, so Render will not route traffic to a broken build.
 4. Point the agent at it: `RESOURCE_URL=https://<your-service>.onrender.com/premium`

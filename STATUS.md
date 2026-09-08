@@ -143,7 +143,8 @@ signature and makes the allowlist load-bearing. Contract code after that.
 - Also covered by the mock and not by testnet: a saturated second returning a zero address with
   code 22, and a REFUSED `deleteSchedule` — the double-payout guard.
 
-- **HoldEscrow deployed: `0xc5241034C7c060361B0223B3c6d77d0A4bC8Ef09` = `0.0.10419881`.** Both
+- **HoldEscrow deployed: `0xc5241034C7c060361B0223B3c6d77d0A4bC8Ef09` = `0.0.10419881`.** SUPERSEDED
+  on 2026-09-09 — this one has the sweep vulnerability. Live escrow is `0.0.10426758`. Both
   lifecycles proven on the real network — one hold refunded unattended (`signatures: []`), one
   claimed with the schedule deleted.
 - **`REFUND_GAS` re-measured: 400,000 -> 250,000.** Real executions: 46,744 happy path, 122,847 worst
