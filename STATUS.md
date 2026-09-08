@@ -50,10 +50,26 @@ One section per person, appended daily. Landed / next / blocked.
 - `% 3600` boundary check removed — dead code, it could never fire.
 - Session summary written: `docs/SESSION-01.md`.
 
+## 2026-09-07 — Alex (contract and payment path)
+
+**Landed**
+
+- **Spike 6 PASSED.** `scheduleCall`'s `value` is **tinybars**, measured not inferred: value 3e8
+  landed exactly 3 HBAR at the recipient. No change to `refund()`. Schedule `0.0.10412082`.
+- The unit rule is now complete and measured on every surface: everything inside the EVM
+  (`balance`, `msg.value` on both normal and scheduled calls, `scheduleCall`'s `value`) is
+  tinybars; everything over JSON-RPC is weibars; the boundary converts by exactly 1e10.
+- `msg.sender` of a scheduled call confirmed against a THIRD-PARTY target — it is the scheduling
+  contract, not the target. Spike 1 could not distinguish these because it called itself.
+- Execution gas measured: a value-carrying scheduled call consumed ~132k gas / 0.1389 HBAR, and the
+  network charges for gas used rather than the limit requested.
+
+**Next** — Igor reviews `docs/plans/04-holdescrow.md`. No contract code until he has.
+
+**Blocked** — nothing.
+
 **Open questions carried forward**
 - The jitter fallback has still never executed. Testnet is uncongested. Needs a mocked HSS.
-- `scheduleCall`'s `uint64 value` is inferred to be tinybars, not measured — both spikes passed
-  zero. Pin it before `refund()` moves real money.
 - Claim and refund landing in the same second: a `HoldEscrow` concern for the adversarial tests.
 
 ---

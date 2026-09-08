@@ -73,10 +73,12 @@ can show the old state. We hit this and briefly recorded a successful delete as 
 that reads back a state change — the live board especially — must poll on the condition, not on the
 HTTP status.
 
-**HBAR has two scales and the EVM shows you one of them.** Inside a contract, `address(this).balance`
-is in tinybars (1e8/HBAR). Over JSON-RPC, `eth_getBalance` is in weibars (1e18/HBAR). Solidity's
-`ether` literal is 1e18, so `balance >= 5 ether` in a Hedera contract can never pass. We got this
-wrong first time; [`units-probe.js`](contracts/scripts/units-probe.cjs) reproduces it.
+**HBAR has two scales and the EVM shows you one of them.** Everything inside the EVM —
+`address(this).balance`, `msg.value`, `scheduleCall`'s `value` — is in **tinybars** (1e8/HBAR).
+Everything over JSON-RPC is in **weibars** (1e18/HBAR). The boundary converts, exactly 1e10.
+Solidity's `ether` literal is 1e18, so `balance >= 5 ether` in a Hedera contract can never pass —
+we got that wrong first time. Measured on every surface, not assumed:
+[units](docs/spikes/05-caveat-closure.md), [value parameter](docs/spikes/06-value-units.md).
 
 Further limits get added here as we find them. This section grows; it does not shrink.
 
