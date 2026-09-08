@@ -64,6 +64,42 @@ One section per person, appended daily. Landed / next / blocked.
 - Execution gas measured: a value-carrying scheduled call consumed ~132k gas / 0.1389 HBAR, and the
   network charges for gas used rather than the limit requested.
 
+## 2026-09-09 — deployment, board, submission material
+
+**Landed**
+
+- **PUBLIC DEPLOYMENT LIVE — the qualification gate is met.** One Render blueprint, two services:
+  https://deadman-server.onrender.com (Docker web service) and https://deadman-board.onrender.com
+  (static site). `/health` answers publicly with the right escrow, price and seller.
+- **Public suite, scenarios A and B** against the deployed host, not localhost:
+  - **A, seller delivers** — hold 2, schedule [`0.0.10427065`](https://hashscan.io/testnet/schedule/0.0.10427065), key revealed, agent decrypted, `H(k)` matched.
+  - **B, seller goes dark** — hold 3, schedule [`0.0.10427072`](https://hashscan.io/testnet/schedule/0.0.10427072), executed `1788899074.078335550`, `signatures: []`, buyer whole.
+- **The live board is built and deployed.** One HTML file, no build, no backend. Reads the mirror
+  node directly from the browser so it survives us killing our own server. Renders `signatures: []`
+  on the refund line. Decoding validated against live logs in node before it went in the page.
+- **Claim delay is runtime-settable** (`POST /admin/dark {on, claimDelaySeconds}`), so the kill test
+  no longer needs a redeploy per attempt.
+- **Submission material:** `docs/checkins/02.md` (due Friday 05:59, written now), the video script,
+  the prior-art table and the public URLs in the README.
+
+**Next** — the kill test on the public host; then HCS receipts if there is room.
+
+**BLOCKED — Privy.** Needs a Privy app id and secret, which require an account, same shape as the
+Render block. Nothing has been written against an API that cannot be tested; per the brief's
+one-hour rule the fallback is an embedded wallet in the board, and that decision is still open.
+
+**PENDING — cold-start measurement.** Two attempts were taken while the service was still inside
+Render's 15-minute idle window, so both read warm (~350ms) and prove nothing. A third is running
+with a proper 18-minute idle. Until it reports, treat the ~30s cold-start figure as Render's
+documented behaviour rather than something we have measured.
+
+**NEEDS ALEX — the kill test.** Suspending the service is a dashboard action. Sequence: set
+`{"on":false,"claimDelaySeconds":45}`, start a purchase, and hit **Suspend** the moment the hold
+appears on the board. `on:false` matters — killing an unwilling seller proves nothing the dark flag
+does not already cover.
+
+---
+
 ## 2026-09-09 — Alex (contract, tests)
 
 **Landed**

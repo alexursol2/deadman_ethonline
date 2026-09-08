@@ -9,6 +9,18 @@ and `value`-in-tinybars as "inferred, not measured", after all four were done. I
 the day plan, the priority order, the dates and the Hedera list — is below, with the stale parts
 corrected rather than copied. The original remains in git history at `5db2c03`.
 
+### Live right now
+
+| | |
+|---|---|
+| x402 endpoint | https://deadman-server.onrender.com |
+| live board | https://deadman-board.onrender.com |
+| escrow | `0.0.10426758` = `0x1f928BF2261979A818Ade961f3b6d8aC1AAbe860` |
+| seller | `0xEDde92344632132aA349Ac02838fb8c80a44931c` — allowlisted opener, **not** the owner |
+
+Both services come from one Render blueprint (`render.yaml`). The API is a Docker web service and
+sleeps after 15 minutes idle on the free tier; the board is a static site and does not.
+
 ### Where things live
 
 | | |
@@ -176,10 +188,15 @@ written after the gate Alex set.
 
 ## What is built, and what is not
 
-**Working on testnet:** the contract, the resource server, the agent, `verify.ts`, and the whole path
-from a real x402 payment through Blocky402 to a network-executed refund with `signatures: []`.
+**Working, publicly deployed:** the contract, the resource server, the agent, `verify.ts`, the live
+board, and the whole path from a real x402 payment through Blocky402 to a network-executed refund
+with `signatures: []`. Verified against the public host, not only locally.
 
-**Not built:** `/web` (live board, Privy), HCS receipts, a public deployment, and the demo video.
+**Not built:** Privy, HCS receipts, and the demo video.
+
+**Not yet run:** the kill test against the *public* host. It needs someone to hit **Suspend** in the
+Render dashboard while a hold is armed and the seller is willing — a dashboard action, so it is the
+one scenario that cannot be driven from here.
 
 **Known limits, all in the README:** a hold costs the seller ~1.9 HBAR so this does not work for
 micro-payments; the refund is armed one transaction *after* the money lands, not atomically; the
