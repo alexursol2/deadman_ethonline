@@ -179,6 +179,18 @@ contract SpikeSchedule {
         emit Pinged(tag, msg.sender, block.timestamp, pingCount);
     }
 
+    /**
+     * @notice A scheduled-call target that always reverts. Spike 8.
+     * @dev Plan 04 Q4 assumes a scheduled execution consumes its schedule even
+     *      when the inner call reverts, which is why refund() must never revert
+     *      after its state transition. That assumption has never been measured.
+     *      Unrestricted like ping(), for the same reason: a sender gate would
+     *      fail the call for the wrong reason and teach us nothing.
+     */
+    function alwaysReverts(bytes32) external pure {
+        revert DeliberateRevert();
+    }
+
     /*//////////////////////////////////////////////////////////////
                                ARMING
     //////////////////////////////////////////////////////////////*/
