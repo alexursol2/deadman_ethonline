@@ -130,6 +130,16 @@ signature and makes the allowlist load-bearing. Contract code after that.
   The seller never held the money at any point.
 - Gas held at the measured figures: openHold 1,668,661, refund 46,744 of 250,000.
 
+- **Resource server and agent built and working.** Three scenarios against the live escrow:
+  seller delivers (hold 8, schedule deleted, agent decrypted, H(k) matched); seller goes dark
+  (hold 9, refunded); and **server killed while alive and holding the key** (hold 11, schedule
+  `0.0.10420624` executed with `signatures: []`, buyer whole). All three holds paid out exactly once.
+- The first kill test was INVALID and is recorded as such — stopping the background task left the
+  old dark server on the port, so the refund fired for the wrong reason. Redone properly.
+- Not using `@x402/express`: its middleware settles after the response body is finalised, and we
+  need `openHold` between settlement and the reply. Uses `@x402/core`'s official client instead.
+- `eth_getLogs` fails on HashIO for this contract, so the agent reads events from the mirror node.
+
 **Blocked** — Alex asked for the contract before Igor's review landed, so plan 04 and
 `HoldEscrow.sol` both still need that review. `docs/reviews/` is empty.
 

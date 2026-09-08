@@ -127,8 +127,13 @@ Further limits get added here as we find them. This section grows; it does not s
 refunded the buyer with `signatures: []` — nobody acted.
 [The run](docs/spikes/12-end-to-end.md).
 
-Still to build: the x402 resource server and the agent client (the track needs the request to go
-through a served endpoint, not straight to the facilitator), the live board, Privy, and `verify.ts`.
+The [resource server](server/) and [paying agent](agent/) are built and working against that escrow.
+Three scenarios recorded: the seller delivers and the buyer decrypts; the seller goes dark and the
+network refunds; and **the server is killed while alive and holding the key, and the refund still
+lands** ([the runs](docs/spikes/13-server-agent.md)).
+
+Still to build: a public deployment (this runs on localhost against testnet), the live board, Privy,
+`verify.ts`, and HCS receipts.
 
 Start with
 [`docs/SESSION-01.md`](docs/SESSION-01.md) for what was verified and what was not; the individual
@@ -138,19 +143,31 @@ reports and their raw mirror-node evidence are in [`docs/spikes/`](docs/spikes/)
 ## Layout
 
 ```
-/contracts    Hardhat project — spike contract now, HoldEscrow next
-/server       x402 resource server
-/agent        the paying client
-/web          live board and Privy
-/docs         plans/, reviews/, spikes/ (raw evidence)
+/contracts    HoldEscrow.sol, the spike contracts, tests
+/server       x402 resource server — settles into the escrow, arms the refund
+/agent        the paying client — pays, watches, never has to act
+/web          live board and Privy (not started)
+/docs         plans/, reviews/, spikes/ (raw evidence for every claim above)
 ```
 
 ## Setup
 
 ```bash
 cp .env.example .env      # fill in an ECDSA Hedera testnet key — ED25519 will not work
-cd contracts && npm install
+cd contracts && npm install && npx hardhat test
 ```
+
+Then deploy the escrow, and run the two services against it:
+
+```bash
+cd contracts && npx hardhat run scripts/deploy-escrow.cjs --network hederaTestnet
+cd server   && npm install && npm start
+cd agent    && npm install && npm start
+```
+
+Set `ESCROW_ADDRESS` in `.env` from the deploy output. The escrow needs an operating float: it pays
+every armed refund's execution gas from its own balance, and `openHold` refuses to open a hold it
+could not afford to refund.
 
 ## AI use
 
