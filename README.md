@@ -24,6 +24,10 @@ balance **without running its code** — both measured in
 [spike 9](docs/spikes/09-settlement-atomicity.md). So the payment credits the escrow directly, and
 the server then arms the refund.
 
+The escrow being a valid x402 destination is verified and settled end to end, not assumed —
+[spike 10](docs/spikes/10-payto-contract.md), a real 0.1 HBAR payment through Blocky402 landing in a
+contract.
+
 What that costs: a window of one transaction in which the money is in the escrow but no refund is
 armed. What it does **not** cost: the seller never holds the money, and `claim()` is the only path
 to the payee, so a server that settles and skips arming gets nothing. The failure mode is a crash

@@ -1,0 +1,32 @@
+{
+  "verdict": "CONTRACT ACCEPTED as payTo — escrow-as-payTo is viable",
+  "controlAccepted": true,
+  "contractAcceptedAsPayTo": true,
+  "facilitator": "https://api.testnet.blocky402.com",
+  "feePayer": "0.0.7162784",
+  "buyerAccountId": "0.0.10418440",
+  "controlPayTo": "0.0.10393158",
+  "subjectPayTo": "0.0.10418229",
+  "subjectContractEvm": "0xB85688ca6D3317E371bF6E18b5A62903d65F535b",
+  "amountTinybar": "10000000",
+  "control": {
+    "label": "CONTROL — plain account as payTo",
+    "payTo": "0.0.10393158",
+    "status": 200,
+    "response": {
+      "isValid": true,
+      "payer": "0.0.10418440"
+    }
+  },
+  "subject": {
+    "label": "SUBJECT — CONTRACT as payTo",
+    "payTo": "0.0.10418229",
+    "status": 200,
+    "response": {
+      "isValid": true,
+      "payer": "0.0.10418440"
+    }
+  },
+  "note": "Only /verify was called. No settlement was attempted.",
+  "ranAt": "2026-09-08T08:01:31.675Z"
+}

@@ -97,10 +97,15 @@ One section per person, appended daily. Landed / next / blocked.
 **Next** — Igor re-reviews plan 04 against the section 8.1 correction, which changes `openHold`'s
 signature and makes the allowlist load-bearing. Contract code after that.
 
-**Blocked** — nothing of ours. New highest risk is partner-side: will Blocky402 accept a contract's
-account id as `payTo` (plan 04 section 8.8)? Needs a real payment payload through `/verify`, and
-belongs with the resource server. If it refuses, a genuine escrow is not buildable on Hedera's own
-x402 stack, which is a track-level problem worth escalating.
+- **Spike 10 PASSED, and it settled for real.** Blocky402 `/verify` accepts a contract as `payTo`
+  (against a plain-account control that also passed), and `/settle` submitted it: transaction
+  `0.0.7162784-1788854559-596024460`, CRYPTOTRANSFER SUCCESS, +0.1 HBAR to the contract, fee paid by
+  Blocky402's `0.0.7162784`. Escrow-as-`payTo` is viable and spike 9's design is unblocked.
+  `receive()` did not run on the real settlement path either, confirming spike 9 where it counts.
+  The settle transaction's fee payer is the artefact that demonstrates track qualification.
+
+**Blocked** — nothing external. `HoldEscrow.sol` is gated only on Igor re-reviewing plan 04 against
+the section 8.1 correction, which changed `openHold` from payable to fund-attributing.
 
 **Blocked** — nothing of ours. Two partner-side items in the check-in.
 

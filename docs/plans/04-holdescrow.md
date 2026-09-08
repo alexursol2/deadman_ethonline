@@ -481,13 +481,18 @@ Consequences to carry through the rest of this plan:
   server could arm a hold against another buyer's unattributed balance. Removing the allowlist
   requires solving attribution first.
 
-**8.8 — Will Blocky402 accept a contract's account id as `payTo`?** *(new, and now the highest
-remaining risk)* The package requires only the `0.0.N` shape plus the facilitator's own
-`resolveAccount`, which is not public. Spike 9 proved the on-chain half works. If the resolver
-refuses contract accounts, the fallback is a plain account forwarding to the escrow, which
-reintroduces the seller-holds-the-money window — and that would be worth raising with Hedera as a
-track-level problem, since it would make a genuine escrow impossible on their own x402 stack. Needs
-a real payment payload through `/verify`; belongs with the resource server.
+**8.8 — Will Blocky402 accept a contract's account id as `payTo`?**
+**ANSWERED: yes, verified and settled end to end.** [Spike 10](../spikes/10-payto-contract.md).
+`/verify` returned `isValid: true` for a contract destination, against a plain-account control that
+also passed. Then `/settle` actually submitted it: transaction
+[`0.0.7162784-1788854559-596024460`](https://hashscan.io/testnet/transaction/0.0.7162784-1788854559-596024460),
+`CRYPTOTRANSFER SUCCESS`, +10,000,000 tinybar to the contract and -10,000,000 from the buyer, fee
+paid by Blocky402's `0.0.7162784`.
+
+**Escrow-as-`payTo` is viable and the design in §0 stands.** Two further confirmations came with it:
+`receive()` did not run on the real settlement path either, and the settle transaction's fee payer
+being `0.0.7162784` is the concrete artefact that demonstrates track qualification — every demo hold
+should have one behind it.
 
 **8.2 — Is a successful `deleteSchedule` rolled back if the enclosing transaction later reverts?**
 **ANSWERED: yes, it is atomic.** [Spike 7](../spikes/07-delete-atomicity.md), schedule
@@ -590,9 +595,9 @@ worth writing first.
 
 1. ~~Spike 7 (§8.2)~~ **done — atomic.** ~~Spike 8 (§8.6)~~ **done — consumed.**
    ~~Spike 9 (§8.1)~~ **done — atomicity is not available; design moved to escrow-as-`payTo`.**
-   §8.8 (will Blocky402 accept a contract as `payTo`) is the remaining risk and belongs with the
-   resource server, not the contract. Contract code can start once this plan is re-reviewed against
-   the §8.1 correction.
+   ~~§8.8~~ **done — Blocky402 verifies AND settles into a contract.** Nothing external now blocks
+   `HoldEscrow.sol`. The only gate left is Igor re-reviewing this plan against the §8.1 correction,
+   which changed `openHold` from payable to fund-attributing.
 2. `HoldEscrow.sol` skeleton: state, `openHold`, `claim`, `refund`, no rescue, no withdraw.
 3. Unit tests against a mocked HSS, including the jitter path (§8.3).
 4. `rescue`, `withdraw`, the solvency invariant.
