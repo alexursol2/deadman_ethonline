@@ -4,7 +4,7 @@
   "description": "Deadman — HIP-1215 spike contracts",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "hardhat test",
     "selectors": "node scripts/verify-selectors.mjs",
     "build": "hardhat compile",
     "deploy": "hardhat run scripts/deploy.cjs --network hederaTestnet",

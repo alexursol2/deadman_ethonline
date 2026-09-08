@@ -104,8 +104,17 @@ signature and makes the allowlist load-bearing. Contract code after that.
   `receive()` did not run on the real settlement path either, confirming spike 9 where it counts.
   The settle transaction's fee payer is the artefact that demonstrates track qualification.
 
-**Blocked** — nothing external. `HoldEscrow.sol` is gated only on Igor re-reviewing plan 04 against
-the section 8.1 correction, which changed `openHold` from payable to fund-attributing.
+- **`HoldEscrow.sol` written**, implementing plan 04 including the section 8.1 correction. Every
+  spike constraint is cited inline at the line that depends on it. 28 unit tests passing against a
+  mocked Schedule Service at `0x16b`.
+- **The jitter fallback is no longer untested.** The mock can saturate seconds, which testnet never
+  does, so the exponential-backoff probe loop, the minute-boundary skip and the give-up path all now
+  have coverage. That was the oldest open caveat, carried since session 01.
+- Also covered by the mock and not by testnet: a saturated second returning a zero address with
+  code 22, and a REFUSED `deleteSchedule` — the double-payout guard.
+
+**Blocked** — Alex asked for the contract before Igor's review landed, so plan 04 and
+`HoldEscrow.sol` both still need that review. `docs/reviews/` is empty.
 
 **Blocked** — nothing of ours. Two partner-side items in the check-in.
 
