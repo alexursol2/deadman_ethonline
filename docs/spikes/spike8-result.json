@@ -1,0 +1,85 @@
+{
+  "verdict": "CONSUMED — a reverting scheduled execution still spends its schedule",
+  "controlExecuted": true,
+  "scheduleConsumedByRevertingExecution": true,
+  "contract": "0x9c472433663620c172C59CeeAe318A63E2428966",
+  "control": {
+    "tag": "s-ok",
+    "fnName": "ping",
+    "txHash": "0xb3f39974e5457c5ac157f0eacc059f5cd6977cc994aaf5adf068d3aeff333277",
+    "scheduleAddress": "0x00000000000000000000000000000000009eF78F",
+    "entityId": "0.0.10418063",
+    "expirySecond": 1788852189,
+    "record": {
+      "admin_key": {
+        "_type": "ProtobufEncoded",
+        "key": "0a05188aeffb04"
+      },
+      "deleted": false,
+      "consensus_timestamp": "1788852099.067398888",
+      "creator_account_id": "0.0.10393158",
+      "executed_timestamp": "1788852189.031647998",
+      "expiration_time": "1788852189.000000000",
+      "memo": "",
+      "payer_account_id": "0.0.10418058",
+      "schedule_id": "0.0.10418063",
+      "signatures": [],
+      "transaction_body": "GkIKFiIUnEckM2Y2IMFyxZzurjGKY+JCiWYQ8JMJIiQz1CXEcy1vawAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "wait_for_expiry": true
+    }
+  },
+  "subject": {
+    "tag": "s-revert",
+    "fnName": "alwaysReverts",
+    "txHash": "0xdd1809f0163f2ac99692ef6ec337356566f4af7a13a5d2a9d61051b2318aef47",
+    "scheduleAddress": "0x00000000000000000000000000000000009eF791",
+    "entityId": "0.0.10418065",
+    "expirySecond": 1788852195,
+    "recordAfterExpiry": {
+      "admin_key": {
+        "_type": "ProtobufEncoded",
+        "key": "0a05188aeffb04"
+      },
+      "deleted": false,
+      "consensus_timestamp": "1788852106.398279106",
+      "creator_account_id": "0.0.10393158",
+      "executed_timestamp": "1788852195.029877208",
+      "expiration_time": "1788852195.000000000",
+      "memo": "",
+      "payer_account_id": "0.0.10418058",
+      "schedule_id": "0.0.10418065",
+      "signatures": [],
+      "transaction_body": "GkIKFiIUnEckM2Y2IMFyxZzurjGKY+JCiWYQ8JMJIiQGXpSgcy1yZXZlcnQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "wait_for_expiry": true
+    },
+    "recordAfterExtraWatch": {
+      "admin_key": {
+        "_type": "ProtobufEncoded",
+        "key": "0a05188aeffb04"
+      },
+      "deleted": false,
+      "consensus_timestamp": "1788852106.398279106",
+      "creator_account_id": "0.0.10393158",
+      "executed_timestamp": "1788852195.029877208",
+      "expiration_time": "1788852195.000000000",
+      "memo": "",
+      "payer_account_id": "0.0.10418058",
+      "schedule_id": "0.0.10418065",
+      "signatures": [],
+      "transaction_body": "GkIKFiIUnEckM2Y2IMFyxZzurjGKY+JCiWYQ8JMJIiQGXpSgcy1yZXZlcnQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "wait_for_expiry": true
+    }
+  },
+  "revertingExecutionRecord": null,
+  "before": {
+    "balanceTinybar": "2000000000",
+    "pingCount": "0"
+  },
+  "after": {
+    "balanceTinybar": "1985954780",
+    "pingCount": "1"
+  },
+  "spentTinybarBothExecutions": "14045220",
+  "cleanedUp": null,
+  "ranAt": "2026-09-08T07:24:46.273Z"
+}

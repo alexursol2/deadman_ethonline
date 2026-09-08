@@ -77,9 +77,17 @@ One section per person, appended daily. Landed / next / blocked.
   reason, since a scheduled execution cannot be un-fired.
 - `docs/PROGRESS.md` untracked again — it was swept into a commit by an over-broad `git add`.
 
-**Next** — Igor reviews plan 04. No contract code until he has. Spike 8 (does a reverting scheduled
-execution still consume the schedule?) and the x402 settlement atomicity question both run before
-`openHold` is written.
+- **Spike 8 PASSED.** A reverting scheduled execution DOES consume its schedule — `executed_timestamp`
+  set, no retry in 60s, with a success control armed alongside proving the network was live.
+  Plan 04 Q4's no-revert rule is now a measured requirement. The contract is charged 0.0227 HBAR for
+  a failed execution vs 0.1178 for a success, which confirms the 0.5 HBAR deposit sizing.
+- **New work item for the frontend:** network-executed calls do NOT appear in the mirror node's
+  `/contracts/{addr}/results`. A refund that fired and reverted is invisible there. Monitoring must
+  go schedule record -> `executed_timestamp` -> `/transactions?timestamp=`.
+
+**Next** — Igor reviews plan 04. No contract code until he has. The x402 settlement atomicity
+question (plan 04 section 8.1) is now the only spike left before `openHold`, and it is the
+highest-risk unknown in the design.
 
 **Blocked** — nothing of ours. Two partner-side items in the check-in.
 

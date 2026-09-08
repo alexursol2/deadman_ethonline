@@ -476,14 +476,33 @@ Consequences, and they are asymmetric:
   the time its body runs the schedule has already fired, and a revert inside it cannot un-fire the
   execution that invoked it. There is no schedule to come back to.
 
-**8.6 — If a scheduled call's execution reverts, is the schedule consumed anyway?** *(new, raised by
-spike 7)* §Q4 assumes yes, which is why the no-revert-after-CAS rule exists. Not measured. Spike 7
-does not cover it — its delete happened in an ordinary transaction, not inside a scheduled execution.
-If a reverting scheduled execution still counts as executed, §Q4's rule is critical exactly as
-written; if the schedule survives to retry, some of §Q4's machinery insures against an unreachable
-state. **Proposed spike 8:** schedule a call to a function that always reverts, then read
-`executed_timestamp`. This is the last unmeasured assumption underneath the refund path and it
-should run before `refund()` is written.
+**8.6 — If a scheduled call's execution reverts, is the schedule consumed anyway?**
+**ANSWERED: yes, consumed.** [Spike 8](../spikes/08-scheduled-revert.md). A schedule whose call
+reverted shows `executed_timestamp` set, `deleted: false`, and did not retry within a further 60 s.
+A control schedule armed alongside it executed successfully six seconds earlier, so the network was
+demonstrably running scheduled calls in that window.
+
+**§Q4's no-revert-after-CAS rule is therefore a hard safety requirement, not a preference**, and
+`rescue()` keeps its justification because a stranded hold is genuinely reachable.
+
+Two numbers that came with it:
+
+- The contract **is charged for failed executions** — 0.0227 HBAR for the revert against 0.1178 HBAR
+  for the success. §Q6's 0.5 HBAR deposit therefore covers a forced-revert griefing attack by more
+  than an order of magnitude. Sizing confirmed rather than guessed.
+- The network charges gas **used**, not requested, confirmed a third time (~112k used against a 150k
+  limit). Requesting `REFUND_GAS = 400,000` costs nothing extra at execution, which is §Q7's
+  premise.
+
+**8.7 — Network-executed calls do not appear in `/api/v1/contracts/{address}/results`.** *(new,
+found by spike 8)* Neither the successful nor the reverting scheduled execution shows up there —
+only the arming transactions do. They are visible via
+`GET /api/v1/transactions?timestamp=<executed_timestamp>`, which reports `scheduled: true` and the
+real result. A refund that fired and reverted is therefore **invisible in the place a dashboard would
+look**, and indistinguishable from one that never fired. The live board and the monitoring runbook
+must read schedule record → `executed_timestamp` → transactions endpoint. Not a contract change; a
+work item for the frontend, and it needs to exist before the demo rather than be discovered during
+it.
 
 **8.3 — The jitter fallback still has never executed.** Carried from session 01. Testnet is
 uncongested, so `_findAvailableSecond`'s backoff path is untested code sitting on `openHold`'s
@@ -539,8 +558,9 @@ worth writing first.
 
 ## 11. Implementation order, once reviewed
 
-1. ~~Spike 7 (§8.2)~~ **done — atomic.** Spike 8 (§8.6) and the §8.1 settlement question —
-   **before** any contract code.
+1. ~~Spike 7 (§8.2)~~ **done — atomic.** ~~Spike 8 (§8.6)~~ **done — consumed.** The §8.1
+   settlement-atomicity question is now the only thing left before contract code, and it is the
+   highest-risk unknown in this plan.
 2. `HoldEscrow.sol` skeleton: state, `openHold`, `claim`, `refund`, no rescue, no withdraw.
 3. Unit tests against a mocked HSS, including the jitter path (§8.3).
 4. `rescue`, `withdraw`, the solvency invariant.

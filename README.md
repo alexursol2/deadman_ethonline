@@ -61,6 +61,15 @@ A successful `deleteSchedule` is rolled back if the enclosing transaction later 
 protects the claim path. It does **not** protect a scheduled execution: by the time a scheduled
 call's body runs, the schedule has already fired, and a revert inside it cannot un-fire that.
 
+**A scheduled call that reverts still spends its schedule.** It fires once and is not re-queued
+([spike 8](docs/spikes/08-scheduled-revert.md)), and the contract is charged for the failed
+execution. That is why our refund path cannot contain anything that reverts once it has started.
+
+**Network-executed calls are invisible in the obvious place.** They do not appear in the mirror
+node's `/contracts/{address}/results`; you have to go schedule record → `executed_timestamp` →
+`/transactions?timestamp=`. A refund that fired and failed looks exactly like one that never fired,
+in the one endpoint a dashboard would poll.
+
 **A rejected `deleteSchedule` looks like a successful transaction.** Only the creating contract
 can delete its own schedule — verified, a stranger gets `INVALID_SIGNATURE`
 ([spike 4](docs/spikes/04-third-party-delete.md)) — but the refusal arrives as a *return code*, not
