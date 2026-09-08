@@ -460,12 +460,30 @@ invalidate a day of contract work, and it is the same shape as the spike-3 findi
 looks like configuration turning out to be the gate.
 
 **8.2 — Is a successful `deleteSchedule` rolled back if the enclosing transaction later reverts?**
+**ANSWERED: yes, it is atomic.** [Spike 7](../spikes/07-delete-atomicity.md), schedule
+`0.0.10418012`. The delete returned 22, the transaction then reverted on purpose, and the schedule
+was still alive afterwards; deleting it again for real returned 22, proving it had been genuinely
+deletable all along.
 
-Assumed yes (it is one Hedera transaction). Unverified. The `claim` ordering in Q5 is deliberately
-chosen so that nothing can revert after the delete, which makes the answer *not matter* — but that is
-defensive design around an unknown, and the unknown is cheap to remove. **Proposed spike 7:** arm a
-schedule, call `deleteSchedule` and then force a revert in the same transaction, then check whether
-the schedule still exists on the mirror node. Half an hour.
+Consequences, and they are asymmetric:
+
+- **`claim()`** — the Q5 ordering rule is no longer load-bearing. If the seller payout reverts, the
+  whole transaction unwinds, the schedule comes back, and the hold returns to `OPEN` still armed.
+  Downgraded from requirement to preference. Recommendation stands to keep credit-on-failure anyway,
+  so both payout paths share one shape; **Igor's call**, and reverting is now a legitimate option
+  where yesterday it was not.
+- **`refund()`** — **unchanged and still mandatory.** `refund()` is executed *by* the schedule. By
+  the time its body runs the schedule has already fired, and a revert inside it cannot un-fire the
+  execution that invoked it. There is no schedule to come back to.
+
+**8.6 — If a scheduled call's execution reverts, is the schedule consumed anyway?** *(new, raised by
+spike 7)* §Q4 assumes yes, which is why the no-revert-after-CAS rule exists. Not measured. Spike 7
+does not cover it — its delete happened in an ordinary transaction, not inside a scheduled execution.
+If a reverting scheduled execution still counts as executed, §Q4's rule is critical exactly as
+written; if the schedule survives to retry, some of §Q4's machinery insures against an unreachable
+state. **Proposed spike 8:** schedule a call to a function that always reverts, then read
+`executed_timestamp`. This is the last unmeasured assumption underneath the refund path and it
+should run before `refund()` is written.
 
 **8.3 — The jitter fallback still has never executed.** Carried from session 01. Testnet is
 uncongested, so `_findAvailableSecond`'s backoff path is untested code sitting on `openHold`'s
@@ -521,7 +539,8 @@ worth writing first.
 
 ## 11. Implementation order, once reviewed
 
-1. Spike 7 (§8.2) and the §8.1 settlement question — **before** any contract code.
+1. ~~Spike 7 (§8.2)~~ **done — atomic.** Spike 8 (§8.6) and the §8.1 settlement question —
+   **before** any contract code.
 2. `HoldEscrow.sol` skeleton: state, `openHold`, `claim`, `refund`, no rescue, no withdraw.
 3. Unit tests against a mocked HSS, including the jitter path (§8.3).
 4. `rescue`, `withdraw`, the solvency invariant.

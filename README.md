@@ -55,6 +55,12 @@ and returns failure codes instead. That holds for business failures — a satura
 forwarded to it. A contract that checks only the returned code will misread gas starvation as its
 own bug. Ours checks both.
 
+**System-contract effects do unwind on revert — but only where there is a transaction to unwind.**
+A successful `deleteSchedule` is rolled back if the enclosing transaction later reverts
+([spike 7](docs/spikes/07-delete-atomicity.md)), which HIP-1215 does not document either way. That
+protects the claim path. It does **not** protect a scheduled execution: by the time a scheduled
+call's body runs, the schedule has already fired, and a revert inside it cannot un-fire that.
+
 **A rejected `deleteSchedule` looks like a successful transaction.** Only the creating contract
 can delete its own schedule — verified, a stranger gets `INVALID_SIGNATURE`
 ([spike 4](docs/spikes/04-third-party-delete.md)) — but the refusal arrives as a *return code*, not

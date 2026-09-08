@@ -64,7 +64,24 @@ One section per person, appended daily. Landed / next / blocked.
 - Execution gas measured: a value-carrying scheduled call consumed ~132k gas / 0.1389 HBAR, and the
   network charges for gas used rather than the limit requested.
 
-**Next** — Igor reviews `docs/plans/04-holdescrow.md`. No contract code until he has.
+## 2026-09-08 — Alex (contract and payment path)
+
+**Landed**
+
+- `docs/plans/04-holdescrow.md` written and committed before any contract code. Answers all seven
+  of the design questions explicitly; two risks named rather than buried.
+- `docs/checkins/01.md` — check-in #1 text, naming two partner-side blockers.
+- **Spike 7 PASSED.** A successful `deleteSchedule` IS rolled back when the transaction reverts —
+  atomic, schedule `0.0.10418012`, with a positive control proving the schedule was genuinely
+  deletable. Relaxes the claim-path ordering rule; `refund()`'s stays mandatory for a different
+  reason, since a scheduled execution cannot be un-fired.
+- `docs/PROGRESS.md` untracked again — it was swept into a commit by an over-broad `git add`.
+
+**Next** — Igor reviews plan 04. No contract code until he has. Spike 8 (does a reverting scheduled
+execution still consume the schedule?) and the x402 settlement atomicity question both run before
+`openHold` is written.
+
+**Blocked** — nothing of ours. Two partner-side items in the check-in.
 
 **Blocked** — nothing.
 
