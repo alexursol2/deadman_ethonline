@@ -21,7 +21,6 @@ const {
   Client,
   PrivateKey,
   AccountId,
-  ContractId,
   TransferTransaction,
   Hbar,
 } = require("@hashgraph/sdk");
@@ -85,8 +84,12 @@ async function main() {
   try {
     const tx = await new TransferTransaction()
       .addHbarTransfer(AccountId.fromString(opAccountId), Hbar.fromTinybars(-HAPI_SEND_TINYBAR))
-      // The contract, addressed as an ACCOUNT. This is what an x402 payTo would do.
-      .addHbarTransfer(ContractId.fromString(sinkEntityId), Hbar.fromTinybars(HAPI_SEND_TINYBAR))
+      // The contract, addressed as an ACCOUNT — which is what an x402 payTo would do.
+      // Must be an AccountId, not a ContractId: addHbarTransfer feeds its argument
+      // to AccountId.fromString, and a ContractId object fails there with the
+      // unhelpful "text.startsWith is not a function". A contract's account is the
+      // same 0.0.N entity, so this addresses exactly the same thing.
+      .addHbarTransfer(AccountId.fromString(sinkEntityId), Hbar.fromTinybars(HAPI_SEND_TINYBAR))
       .execute(client);
     const receipt = await tx.getReceipt(client);
     hapiStatus = receipt.status.toString();

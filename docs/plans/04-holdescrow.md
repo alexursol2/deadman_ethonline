@@ -11,10 +11,24 @@ the committed mirror-node JSON behind each claim.
 
 ## 0. What this contract is
 
-A hold that arms its own refund. The x402 payment settles into `openHold`, which in the same
-transaction books a HIP-1215 scheduled call to `refund()` at `deadline`. The seller reveals the key
-to `claim()`, which pays them and deletes the schedule. If the seller does nothing, nobody does
-anything, and the network executes the refund.
+A hold that arms its own refund.
+
+> **CORRECTED 2026-09-08 by [spike 9](../spikes/09-settlement-atomicity.md).** This section
+> originally said the payment settles *into* `openHold` in the same transaction. It cannot.
+> `@x402/hedera` settles with a `TransferTransaction` and the facilitator rejects anything else by
+> name; a HAPI transfer to a contract credits its balance **without running `receive()`**, measured.
+> The x402 `payTo` is the escrow, so the money still never touches the seller — but the refund is
+> armed by a **second transaction**, not the settling one. `openHold` is therefore **not payable**
+> and attributes already-credited funds. The refund itself is unchanged and still keeper-free.
+
+The x402 `payTo` is the escrow's account, so settlement credits the escrow directly. The server then
+calls `openHold`, which books a HIP-1215 scheduled call to `refund()` at `deadline` against those
+funds. The seller reveals the key to `claim()`, which pays them and deletes the schedule. If the
+seller does nothing, nobody does anything, and the network executes the refund.
+
+**The seller cannot be paid without a hold existing** — `claim()` is the only path to the payee — so
+a server that settles and skips `openHold` gets nothing, and the funds stay in the escrow out of its
+reach. That is what makes the settle-then-arm window tolerable rather than fatal.
 
 ```
 openHold(payer, payee, commitments, deadline)  payable
@@ -443,21 +457,37 @@ event Rescued(uint256 indexed holdId, address indexed payer, uint64 amountTinyba
 
 ## 8. Open questions and risks — the ones that could still change this design
 
-**8.1 — Does the x402 settlement path let us call `openHold` atomically?** *(highest risk in this plan)*
+**8.1 — Does the x402 settlement path let us call `openHold` atomically?**
+**ANSWERED: no.** [Spike 9](../spikes/09-settlement-atomicity.md). Two independent reasons:
+`@x402/hedera` only ever builds a `TransferTransaction` and the facilitator rejects anything else
+with `invalid_exact_hedera_payload_contains_non_transfer_ops`; and a HAPI `CryptoTransfer` to a
+contract credits its balance **without executing `receive()`** — measured, against an EVM-transfer
+control on the same contract that did run it.
 
-The whole design rests on the payment settling **into** `openHold` in one transaction. If Blocky402's
-`/settle` performs a plain HBAR transfer to a recipient address and nothing more, we cannot arm the
-refund atomically with taking the money, and Q3's guarantee collapses into "transfer, then arm, and
-hope nothing happens in between".
+Option (b) from the original list is therefore dead as well as option (a) being unattractive. The
+design moves to **escrow-as-`payTo`**: the settlement credits the escrow directly, and `openHold`
+is a **non-payable** call that attributes already-present funds via
+`unattributed = balance - totalLocked - totalWithdrawable - reserve`.
 
-Not yet verified — spike 3 established the facilitator is alive and what it advertises, not what its
-settle path can call. **Options if it cannot:** (a) the resource server calls `openHold` immediately
-after settlement and treats a failure as a refund-to-buyer, reintroducing a trust window measured in
-seconds; (b) the escrow itself is the x402 recipient and `receive()` opens a hold from packed
-calldata, which is fragile; (c) pre-funded holds opened before settlement.
-**Recommendation: measure it before writing `openHold`.** It is a half-day question that could
-invalidate a day of contract work, and it is the same shape as the spike-3 finding — the thing that
-looks like configuration turning out to be the gate.
+Consequences to carry through the rest of this plan:
+
+- `openHold` loses `msg.value` and gains an `amountTinybar` argument plus the unattributed check.
+  §Q6's deposit still applies and must now be paid in the same way.
+- §Q3's "everything reverts together" still holds **within `openHold`**, which is what it was
+  protecting. It no longer spans the settlement.
+- A payment that is never armed leaves unattributed funds with no on-chain record of the payer.
+  Needs an operator-attributed sweep, which is a disclosed "someone must act" path.
+- The allowlist in §Q6 is now load-bearing, not just prudent: in permissionless mode a hostile
+  server could arm a hold against another buyer's unattributed balance. Removing the allowlist
+  requires solving attribution first.
+
+**8.8 — Will Blocky402 accept a contract's account id as `payTo`?** *(new, and now the highest
+remaining risk)* The package requires only the `0.0.N` shape plus the facilitator's own
+`resolveAccount`, which is not public. Spike 9 proved the on-chain half works. If the resolver
+refuses contract accounts, the fallback is a plain account forwarding to the escrow, which
+reintroduces the seller-holds-the-money window — and that would be worth raising with Hedera as a
+track-level problem, since it would make a genuine escrow impossible on their own x402 stack. Needs
+a real payment payload through `/verify`; belongs with the resource server.
 
 **8.2 — Is a successful `deleteSchedule` rolled back if the enclosing transaction later reverts?**
 **ANSWERED: yes, it is atomic.** [Spike 7](../spikes/07-delete-atomicity.md), schedule
@@ -558,9 +588,11 @@ worth writing first.
 
 ## 11. Implementation order, once reviewed
 
-1. ~~Spike 7 (§8.2)~~ **done — atomic.** ~~Spike 8 (§8.6)~~ **done — consumed.** The §8.1
-   settlement-atomicity question is now the only thing left before contract code, and it is the
-   highest-risk unknown in this plan.
+1. ~~Spike 7 (§8.2)~~ **done — atomic.** ~~Spike 8 (§8.6)~~ **done — consumed.**
+   ~~Spike 9 (§8.1)~~ **done — atomicity is not available; design moved to escrow-as-`payTo`.**
+   §8.8 (will Blocky402 accept a contract as `payTo`) is the remaining risk and belongs with the
+   resource server, not the contract. Contract code can start once this plan is re-reviewed against
+   the §8.1 correction.
 2. `HoldEscrow.sol` skeleton: state, `openHold`, `claim`, `refund`, no rescue, no withdraw.
 3. Unit tests against a mocked HSS, including the jitter path (§8.3).
 4. `rescue`, `withdraw`, the solvency invariant.

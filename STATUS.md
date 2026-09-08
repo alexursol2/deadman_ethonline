@@ -85,9 +85,22 @@ One section per person, appended daily. Landed / next / blocked.
   `/contracts/{addr}/results`. A refund that fired and reverted is invisible there. Monitoring must
   go schedule record -> `executed_timestamp` -> `/transactions?timestamp=`.
 
-**Next** — Igor reviews plan 04. No contract code until he has. The x402 settlement atomicity
-question (plan 04 section 8.1) is now the only spike left before `openHold`, and it is the
-highest-risk unknown in the design.
+- **Spike 9 — the big one. Atomic settlement is NOT available.** `@x402/hedera` only ever builds a
+  `TransferTransaction` and the facilitator rejects anything else by name; a HAPI transfer to a
+  contract credits its balance without running `receive()` (measured, with an EVM-transfer control
+  on the same contract that did run it). The brief's "in the same transaction" is not achievable.
+  **The one-liner is unaffected** — that claim is about the refund firing, which is unchanged.
+  Design moves to escrow-as-`payTo`: settlement credits the escrow directly so the seller never
+  holds the money, and `openHold` becomes non-payable, attributing already-credited funds.
+  README and plan 04 corrected rather than softened.
+
+**Next** — Igor re-reviews plan 04 against the section 8.1 correction, which changes `openHold`'s
+signature and makes the allowlist load-bearing. Contract code after that.
+
+**Blocked** — nothing of ours. New highest risk is partner-side: will Blocky402 accept a contract's
+account id as `payTo` (plan 04 section 8.8)? Needs a real payment payload through `/verify`, and
+belongs with the resource server. If it refuses, a genuine escrow is not buildable on Hedera's own
+x402 stack, which is a track-level problem worth escalating.
 
 **Blocked** — nothing of ours. Two partner-side items in the check-in.
 

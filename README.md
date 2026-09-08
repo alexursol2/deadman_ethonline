@@ -2,8 +2,8 @@
 
 > **Every x402 escrow needs someone to push a button. Ours is the only one where the protocol pushes it.**
 
-An x402 payment settles into a hold instead of to the seller. In the same transaction, the hold
-books its own refund with the Hedera network, sixty seconds out.
+An x402 payment settles into a hold instead of to the seller. The hold then books its own refund
+with the Hedera network, sixty seconds out.
 
 - Seller delivers, reveals the key, gets paid, and the booked refund is cancelled.
 - Seller does nothing, **nobody does anything**, and the network itself executes the refund at the
@@ -16,6 +16,22 @@ that a contract arms its own refund from inside the EVM, atomically, in the tran
 the money.**
 
 ## Limits we are not hiding
+
+**The refund is armed one transaction after the payment lands, not in the same one.** We wanted
+atomicity and it is not available: `@x402/hedera` settles with a `TransferTransaction` and its
+facilitator rejects anything else by name, and a Hedera HAPI transfer to a contract credits the
+balance **without running its code** — both measured in
+[spike 9](docs/spikes/09-settlement-atomicity.md). So the payment credits the escrow directly, and
+the server then arms the refund.
+
+What that costs: a window of one transaction in which the money is in the escrow but no refund is
+armed. What it does **not** cost: the seller never holds the money, and `claim()` is the only path
+to the payee, so a server that settles and skips arming gets nothing. The failure mode is a crash
+leaving funds in the escrow, recoverable by an operator-attributed sweep — a disclosed
+"someone must act" path that we would rather name than bury.
+
+**The refund itself is unaffected.** Once armed, the network executes it with nobody acting, and
+nobody — including us — can cancel it. That is the claim in the one-liner and it is intact.
 
 **We guarantee delivery, not correctness.** A seller can encrypt garbage, commit to the hash of that
 garbage, reveal the correct key, and get paid. The contract cannot read the plaintext and does not

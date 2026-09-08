@@ -1,0 +1,31 @@
+{
+  "verdict": "HAPI TRANSFERS CREDIT WITHOUT EXECUTING CODE — atomicity is NOT available",
+  "controlRan": true,
+  "hapiTransferRanReceive": false,
+  "hapiTransferCreditedTinybar": "200000000",
+  "atomicSettlementAvailable": false,
+  "sinkEvm": "0xB85688ca6D3317E371bF6E18b5A62903d65F535b",
+  "sinkEntityId": "0.0.10418229",
+  "operatorAccountId": "0.0.10393158",
+  "evmControlTx": "0xead7c74cf3e5d29a30b185b0ed07176a04160d2c228b12b5ff0670ddd3a6bc77",
+  "hapiTxId": "0.0.10393158@1788853069.294141229",
+  "hapiStatus": "SUCCESS",
+  "snapshots": {
+    "start": {
+      "receiveCalls": "0",
+      "landings": "0",
+      "balanceTinybar": "0"
+    },
+    "afterEvmTransfer": {
+      "receiveCalls": "1",
+      "landings": "0",
+      "balanceTinybar": "100000000"
+    },
+    "afterHapiTransfer": {
+      "receiveCalls": "1",
+      "landings": "0",
+      "balanceTinybar": "300000000"
+    }
+  },
+  "ranAt": "2026-09-08T07:38:00.861Z"
+}
