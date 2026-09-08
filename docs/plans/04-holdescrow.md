@@ -358,10 +358,14 @@ the schedule is consumed, and the hold is stranded — the Q4 disaster arriving 
 limit into account, so a larger request makes a given second look full sooner (C9). 400,000 is
 chosen to sit well clear of the failure while not being absurd. Not 4,000,000.
 
-**This number must be re-measured, not trusted.** The action item: once `refund()` exists, arm a real
-one on testnet and read actual gas used off the mirror node, then set `REFUND_GAS` to ~2x that. The
-400,000 above is a pre-implementation budget, and saying so is the difference between a derived
-number and a number that merely looks derived.
+**MEASURED 2026-09-08 — `REFUND_GAS` is now 250,000.** See
+[the measurement](../spikes/11-escrow-gas.md). Real `refund()` executions on testnet: 46,744 happy
+path, 90,805 with a cheap revert, 105,747 with the stipend burned, and **122,847** for that last
+case on a *fresh* contract where both credit-fallback slots are cold. 250,000 is 2.0x the maximum.
+
+The estimate above was good — 195,000 predicted against a 122,847 maximum — but the warm/cold
+storage difference was worth 17,100 gas and no amount of arithmetic was going to surface it. Note
+also that `openHold` measured **1,668,649** gas, so the server's transaction needs ~3M and we send 5M.
 
 ---
 
@@ -539,12 +543,14 @@ must read schedule record → `executed_timestamp` → transactions endpoint. No
 work item for the frontend, and it needs to exist before the demo rather than be discovered during
 it.
 
-**8.3 — The jitter fallback still has never executed.** Carried from session 01. Testnet is
-uncongested, so `_findAvailableSecond`'s backoff path is untested code sitting on `openHold`'s
-critical path. Needs a mocked HSS in unit tests. This is Igor's, and it is the oldest open item.
+**8.3 — The jitter fallback: half closed.** The **minute-boundary skip has now run on testnet**
+(`probesUsed: 1`, a deadline landing on `% 60 == 0`, [spike 11](../spikes/11-escrow-gas.md)), and the
+whole path including capacity saturation and the give-up branch is covered by unit tests against a
+mocked HSS. What has still never happened on the real network is a **capacity-saturated second**,
+because testnet is uncongested. That half stays open and stays in the README.
 
-**8.4 — `refund()` gas is a pre-implementation budget, not a measurement.** §Q7. Re-measure against
-a real `refund()` before the demo.
+**8.4 — ~~a pre-implementation budget~~ MEASURED.** §Q7, [spike 11](../spikes/11-escrow-gas.md).
+`REFUND_GAS = 250,000`, 2.0x the real maximum of 122,847.
 
 **8.5 — Hold amounts above `uint64` tinybars are impossible.** 184 billion HBAR, against a 50 billion
 supply. Not a real constraint; recorded so nobody re-derives it.

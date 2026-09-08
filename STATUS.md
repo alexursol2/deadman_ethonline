@@ -113,6 +113,16 @@ signature and makes the allowlist load-bearing. Contract code after that.
 - Also covered by the mock and not by testnet: a saturated second returning a zero address with
   code 22, and a REFUSED `deleteSchedule` — the double-payout guard.
 
+- **HoldEscrow deployed: `0xc5241034C7c060361B0223B3c6d77d0A4bC8Ef09` = `0.0.10419881`.** Both
+  lifecycles proven on the real network — one hold refunded unattended (`signatures: []`), one
+  claimed with the schedule deleted.
+- **`REFUND_GAS` re-measured: 400,000 -> 250,000.** Real executions: 46,744 happy path, 122,847 worst
+  case. The first worst-case run read 105,747 and was wrong — it reused a warm contract, and a fresh
+  one costs 17,100 more because both credit-fallback slots are cold.
+- `openHold` measured at 1,668,649 gas. The server's transaction needs ~3M; we send 5M.
+- The minute-boundary skip fired on testnet for the first time (`probesUsed: 1`). The
+  capacity-saturation branch still has never run on a real network.
+
 **Blocked** — Alex asked for the contract before Igor's review landed, so plan 04 and
 `HoldEscrow.sol` both still need that review. `docs/reviews/` is empty.
 

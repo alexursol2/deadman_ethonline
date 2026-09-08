@@ -60,14 +60,17 @@ Known solutions we did not build, and why:
 
 ### Limits the spikes found
 
-**The jitter fallback is untested.** When the requested second is saturated, `arm()` walks
-exponential-backoff candidates looking for a free one. Testnet is uncongested, so that path has
-never executed against a real network — `probesUsed` was `0` on every run. It has unit tests against
-a mocked Schedule Service; it does not have evidence. We are not claiming otherwise.
+**The saturated-second path has never run on a real network.** When the requested second is full,
+`openHold` walks exponential-backoff candidates looking for a free one. Testnet is uncongested, so
+`hasScheduleCapacity` has returned true on every probe we have ever made. The minute-boundary skip
+*has* run on testnet ([measured](docs/spikes/11-escrow-gas.md)), and the whole path has unit tests
+against a mocked Schedule Service — but the congestion branch has evidence only from a mock, and we
+are not claiming otherwise.
 
-**Opening a hold is expensive.** The `scheduleCall` precompile needs ~1.45M gas of its own
-([measured](docs/spikes/gas-probe.json)), so the x402 settlement that opens a hold has to carry
-several million gas. Anyone integrating should budget for that rather than discovering it.
+**Opening a hold costs ~1.67M gas.** The `scheduleCall` precompile's ~1.45M floor dominates
+([measured](docs/spikes/11-escrow-gas.md)), so the transaction that opens a hold needs ~3M and we
+send 5M. Not a normal EVM cost; budget for it rather than discover it, because below the floor it
+fails with empty returndata that reads like a contract bug.
 
 **`scheduleCall` does revert, in one case HIP-1215 does not mention.** The HIP says it never reverts
 and returns failure codes instead. That holds for business failures — a saturated second returns

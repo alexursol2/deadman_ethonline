@@ -63,18 +63,35 @@ contract HoldEscrow {
 
     /**
      * @notice Gas requested for the scheduled refund call.
-     * @dev Derived in plan 04 §Q7 from spike 6's measured ~132,000 for a
-     *      value-carrying scheduled call, plus refund()'s own storage writes,
-     *      the payout stipend and the credit-fallback branch: ~195,000 worst
-     *      case, doubled for margin.
      *
-     *      Rounding up is close to free (C8: the network charges gas used), and
-     *      under-requesting is catastrophic (C11: the refund reverts, the
-     *      schedule is spent, the hold is stranded). Asymmetric, so we round up.
+     * @dev MEASURED on testnet against a real refund(), not estimated:
      *
-     *      MUST be re-measured against a real refund() before the demo.
+     *        46,744   happy path, payer is an EOA that accepts the push
+     *        90,805   payer reverts cheaply, credit-on-failure branch runs
+     *       105,747   payer BURNS the whole 30k stipend, then is credited
+     *       122,847   the same, but on a FRESH contract  <- the real maximum
+     *
+     *      That last row is the one that matters and it was nearly missed. The
+     *      105,747 run reused a contract whose totalWithdrawableTinybar was
+     *      already non-zero, so the fallback's second SSTORE was warm. On a
+     *      fresh contract both fallback slots are cold and it costs ~17k more.
+     *      A "worst case" measured on a warm contract is not the worst case.
+     *
+     *      250,000 is 2.0x that maximum, and the components cannot grow past it:
+     *      the payout stipend is capped at PAYOUT_STIPEND, both fallback slots
+     *      are already counted cold, and the rest is fixed code and one event.
+     *
+     *      Why round up at all: C8, the network charges for gas USED, so the
+     *      unused headroom is free at execution. Why not round up further: the
+     *      requested limit is an input to hasScheduleCapacity, so an inflated
+     *      figure makes a second look saturated sooner than it is.
+     *
+     *      The 400,000 this replaced was plan 04 §Q7's pre-implementation
+     *      estimate, which landed within 10% of the real worst case (~195,000
+     *      predicted against 105,747 doubled) — but it was arithmetic, and
+     *      arithmetic is what the tinybar and gas-floor bugs both survived.
      */
-    uint256 public constant REFUND_GAS = 400_000;
+    uint256 public constant REFUND_GAS = 250_000;
 
     /// @dev Matches HIP-1215's reference retry pattern.
     uint256 internal constant MAX_PROBES = 8;
