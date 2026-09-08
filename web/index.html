@@ -4,84 +4,335 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Deadman — live board</title>
+    <!--
+      ONE FILE, NO BUILD, NO BACKEND.
+
+      This page talks only to the Hedera mirror node, directly from your browser.
+      It never calls our resource server, and that is the single most important
+      thing about it: the demo is killing our own infrastructure and watching the
+      buyer get refunded anyway. A board that went down with the server would
+      destroy its own evidence.
+
+      Event data is decoded by slicing fixed-width hex words rather than by
+      pulling in ethers, because every field we need is a static 32-byte word.
+
+      The trap this page is built around, found in spike 8: a network-executed
+      call does NOT appear under /contracts/{address}/results. Reading the
+      refund from there would show it never happened, which is the exact
+      opposite of what this page exists to prove. The path is:
+          schedule record -> executed_timestamp -> /transactions?timestamp=
+    -->
     <style>
       :root {
         color-scheme: dark;
-        --bg: #0b0d10;
-        --fg: #e8eaed;
-        --dim: #8b929c;
-        --line: #232830;
-        --ok: #4ade80;
+        --bg: #0a0c0f;
+        --panel: #12161c;
+        --line: #232a33;
+        --fg: #eef1f5;
+        --dim: #8d96a3;
+        --open: #fbbf24;
+        --claimed: #60a5fa;
+        --refunded: #4ade80;
+        --hot: #f87171;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
         background: var(--bg);
         color: var(--fg);
-        font: 16px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-        display: grid;
-        place-items: center;
-        min-height: 100vh;
-        padding: 2rem;
+        font: 17px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        padding: 1.5rem;
       }
-      main { max-width: 46rem; width: 100%; }
-      h1 { font-size: 1.9rem; margin: 0 0 0.4rem; letter-spacing: -0.01em; }
-      .lead { color: var(--dim); margin: 0 0 2rem; }
-      .card {
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.6rem 1.5rem;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 1rem;
+        margin-bottom: 1.25rem;
+      }
+      h1 { font-size: 1.6rem; margin: 0; letter-spacing: -0.02em; }
+      .tag { color: var(--dim); font-size: 0.95rem; }
+      .clock { margin-left: auto; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+      .counts { display: flex; gap: 1.4rem; font-size: 1.05rem; }
+      .counts b { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+      .hold {
         border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 1.25rem 1.5rem;
-        background: #11141a;
+        border-left: 5px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        padding: 1rem 1.2rem;
+        margin-bottom: 0.9rem;
       }
-      .row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.35rem 0; }
-      .row + .row { border-top: 1px solid var(--line); }
+      .hold.OPEN { border-left-color: var(--open); }
+      .hold.CLAIMED { border-left-color: var(--claimed); }
+      .hold.REFUNDED { border-left-color: var(--refunded); }
+      .top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 1.2rem; }
+      .id { font-size: 1.45rem; font-weight: 700; }
+      .state { font-size: 1.15rem; font-weight: 700; letter-spacing: 0.05em; }
+      .OPEN .state { color: var(--open); }
+      .CLAIMED .state { color: var(--claimed); }
+      .REFUNDED .state { color: var(--refunded); }
+      .amount { font-size: 1.2rem; }
+      .cd { margin-left: auto; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+      .cd.soon { color: var(--hot); }
+      .verdict {
+        margin-top: 0.7rem;
+        padding: 0.6rem 0.8rem;
+        border-radius: 6px;
+        background: #0e1319;
+        border: 1px solid var(--line);
+        font-size: 1.02rem;
+      }
+      .verdict.network { border-color: #1d4a2e; background: #0c1a12; }
+      .verdict b { color: var(--refunded); }
+      .kv { display: grid; grid-template-columns: 11rem 1fr; gap: 0.15rem 1rem; margin-top: 0.6rem; font-size: 0.9rem; }
       .k { color: var(--dim); }
-      .v { text-align: right; word-break: break-all; }
-      .ok { color: var(--ok); }
-      code { color: var(--fg); }
-      footer { color: var(--dim); margin-top: 2rem; font-size: 0.85rem; }
-      a { color: inherit; }
+      .v { word-break: break-all; }
+      a { color: var(--claimed); }
+      .empty, .err { color: var(--dim); padding: 2rem 0; }
+      .err { color: var(--hot); }
+      footer { color: var(--dim); font-size: 0.85rem; border-top: 1px solid var(--line); margin-top: 1.5rem; padding-top: 1rem; }
+      @media (max-width: 700px) { .kv { grid-template-columns: 1fr; } .cd { margin-left: 0; } }
     </style>
   </head>
   <body>
-    <main>
+    <header>
       <h1>Deadman</h1>
-      <p class="lead">
-        Every x402 escrow needs someone to push a button.<br />
-        Ours is the only one where the protocol pushes it.
+      <span class="tag">escrow <a id="escrowLink" target="_blank" rel="noopener"></a> · Hedera testnet</span>
+      <span class="clock" id="clock">—</span>
+    </header>
+
+    <div class="counts">
+      <span>open <b id="cOpen">0</b></span>
+      <span>claimed <b id="cClaimed">0</b></span>
+      <span>refunded by the network <b id="cRefunded">0</b></span>
+    </div>
+
+    <div id="list"><p class="empty">loading holds from the mirror node…</p></div>
+
+    <footer>
+      <p>
+        This page reads the Hedera mirror node directly from your browser. It never calls the
+        resource server, so it keeps working when we shut that server down — which is the point.
       </p>
-
-      <div class="card">
-        <div class="row"><span class="k">board</span><span class="v ok">deployed</span></div>
-        <div class="row"><span class="k">live hold data</span><span class="v">not built yet</span></div>
-        <div class="row"><span class="k">escrow</span><span class="v"><code id="escrow">0.0.10426758</code></span></div>
-        <div class="row"><span class="k">network</span><span class="v">Hedera testnet</span></div>
-        <div class="row"><span class="k">clock</span><span class="v" id="clock">—</span></div>
-      </div>
-
-      <footer>
-        <p>
-          Placeholder. This page exists so the static service deploys and gets a URL; the board
-          itself is the next piece of work.
-        </p>
-        <p>
-          When it is built it will read the Hedera mirror node <strong>directly from your
-          browser</strong> and never call our backend — the demo kills our own servers, and a board
-          that died with them would destroy its own evidence.
-        </p>
-        <p>
-          <a href="https://github.com/alexursol2/deadman_ethonline">github.com/alexursol2/deadman_ethonline</a>
-        </p>
-      </footer>
-    </main>
+      <p id="lastPoll"></p>
+    </footer>
 
     <script>
-      // A visible ticking clock, so a screen recording shows real time passing
-      // rather than a still image. The countdowns will lean on the same idea.
-      const clock = document.getElementById("clock");
-      const tick = () => (clock.textContent = new Date().toISOString().replace("T", " ").slice(0, 19) + "Z");
-      tick();
-      setInterval(tick, 1000);
+      const ESCROW_EVM = "0x1f928BF2261979A818Ade961f3b6d8aC1AAbe860";
+      const ESCROW_ID = "0.0.10426758";
+      const MIRROR = "https://testnet.mirrornode.hedera.com";
+      const HASHSCAN = "https://hashscan.io/testnet";
+      const POLL_MS = 5000;
+
+      const TOPIC = {
+        HoldOpened: "0xee42bece8c945fc3657e3c9d626a5f7c44f955ffcc9ba20908244c2ecbaca486",
+        Claimed: "0xbcb8b73e5a89971ee294cc3d2f51a084375b679f88047211b28c5344acb53df5",
+        Refunded: "0x2d22e1fcf76a0749872e861a08da0cf2f08ea778b8b0e4f2037f0108140d1fc4",
+      };
+
+      const $ = (id) => document.getElementById(id);
+      const word = (data, i) => data.replace(/^0x/, "").slice(i * 64, (i + 1) * 64);
+      const toBig = (hex) => BigInt("0x" + hex);
+      const addrOf = (w) => "0x" + w.slice(24);
+      /** A long-zero EVM address is just its entity number. */
+      const entityOf = (w) => "0.0." + toBig(w).toString();
+      const hbar = (tinybar) => (Number(tinybar) / 1e8).toLocaleString(undefined, { maximumFractionDigits: 8 });
+      const short = (h) => h.slice(0, 10) + "…" + h.slice(-6);
+
+      async function get(path) {
+        const r = await fetch(MIRROR + path, { headers: { accept: "application/json" } });
+        if (!r.ok) throw new Error(path + " -> " + r.status);
+        return r.json();
+      }
+
+      /** Every log the escrow has emitted, newest first. */
+      async function fetchLogs() {
+        const r = await get(`/api/v1/contracts/${ESCROW_EVM}/results/logs?order=desc&limit=100`);
+        return r.logs || [];
+      }
+
+      function buildHolds(logs) {
+        const holds = new Map();
+        // Oldest first, so HoldOpened lands before the resolution that follows it.
+        for (const l of [...logs].reverse()) {
+          const t0 = String(l.topics[0]).toLowerCase();
+          const id = l.topics[1] ? toBig(l.topics[1].slice(2)).toString() : null;
+          if (!id) continue;
+
+          if (t0 === TOPIC.HoldOpened) {
+            const d = l.data;
+            holds.set(id, {
+              id,
+              payer: addrOf(l.topics[2].slice(2)),
+              payee: addrOf(l.topics[3].slice(2)),
+              amountTinybar: toBig(word(d, 0)),
+              armedDeadline: Number(toBig(word(d, 2))),
+              scheduleId: entityOf(word(d, 3)),
+              probesUsed: Number(toBig(word(d, 4))),
+              hKey: "0x" + word(d, 5),
+              hCipher: "0x" + word(d, 6),
+              hPlain: "0x" + word(d, 7),
+              hRequest: "0x" + word(d, 8),
+              state: "OPEN",
+              openedAt: l.timestamp,
+              key: null,
+              schedule: null,
+            });
+          } else if (t0 === TOPIC.Claimed && holds.has(id)) {
+            const h = holds.get(id);
+            h.state = "CLAIMED";
+            h.key = l.data; // Claimed's only non-indexed field is k
+            h.resolvedAt = l.timestamp;
+          } else if (t0 === TOPIC.Refunded && holds.has(id)) {
+            const h = holds.get(id);
+            h.state = "REFUNDED";
+            h.resolvedAt = l.timestamp;
+          }
+        }
+        return [...holds.values()].sort((a, b) => Number(b.id) - Number(a.id));
+      }
+
+      /**
+       * The schedule record, and — if it fired — the transaction that ran it.
+       *
+       * Spike 8: a network-executed call is NOT under /contracts/{addr}/results.
+       * Only this path sees it, and `signatures: []` on the schedule is the
+       * whole product: nobody signed, the network simply ran it.
+       */
+      async function fetchSchedule(h) {
+        try {
+          const s = await get(`/api/v1/schedules/${h.scheduleId}`);
+          const out = { deleted: s.deleted, executed: s.executed_timestamp, signatures: s.signatures || [] };
+          if (s.executed_timestamp) {
+            try {
+              const t = await get(`/api/v1/transactions?timestamp=${s.executed_timestamp}`);
+              const call = (t.transactions || []).find((x) => x.name === "CONTRACTCALL");
+              if (call) {
+                out.result = call.result;
+                out.txId = call.transaction_id;
+              }
+            } catch { /* the schedule record alone is enough to render */ }
+          }
+          return out;
+        } catch {
+          return null;
+        }
+      }
+
+      function countdown(h) {
+        const left = h.armedDeadline - Math.floor(Date.now() / 1000);
+        if (h.state !== "OPEN") return "";
+        if (left <= 0) return "refund due…";
+        const m = Math.floor(left / 60);
+        const s = left % 60;
+        return (m > 0 ? m + "m " : "") + s + "s";
+      }
+
+      function verdictHtml(h) {
+        if (h.state === "REFUNDED") {
+          const sc = h.schedule;
+          const sig = sc ? JSON.stringify(sc.signatures) : "[]";
+          const when = sc && sc.executed ? sc.executed : "";
+          return `<div class="verdict network">
+            <b>the NETWORK executed the refund.</b> Nobody signed it, nobody submitted it.
+            <br />signatures: <b>${sig}</b>${when ? ` · executed ${when}` : ""}
+            ${sc && sc.txId ? ` · <a href="${HASHSCAN}/transaction/${sc.txId.replace("@", "-").replace(/\./g, ".")}" target="_blank" rel="noopener">transaction</a>` : ""}
+          </div>`;
+        }
+        if (h.state === "CLAIMED") {
+          return `<div class="verdict">
+            the seller revealed the key and was paid. The armed refund was cancelled
+            ${h.schedule && h.schedule.deleted ? "(schedule deleted)" : ""}.
+          </div>`;
+        }
+        return `<div class="verdict">
+          refund armed with the network. If the seller never reveals the key,
+          <b>nobody has to do anything</b>.
+        </div>`;
+      }
+
+      function render(holds) {
+        const list = $("list");
+        if (!holds.length) {
+          list.innerHTML = '<p class="empty">no holds yet.</p>';
+          return;
+        }
+        $("cOpen").textContent = holds.filter((h) => h.state === "OPEN").length;
+        $("cClaimed").textContent = holds.filter((h) => h.state === "CLAIMED").length;
+        $("cRefunded").textContent = holds.filter((h) => h.state === "REFUNDED").length;
+
+        list.innerHTML = holds
+          .map((h) => {
+            const cd = countdown(h);
+            const soon = h.state === "OPEN" && h.armedDeadline - Date.now() / 1000 < 20;
+            return `<div class="hold ${h.state}">
+              <div class="top">
+                <span class="id">hold ${h.id}</span>
+                <span class="state">${h.state}</span>
+                <span class="amount">${hbar(h.amountTinybar)} HBAR</span>
+                <span class="cd ${soon ? "soon" : ""}" data-deadline="${h.armedDeadline}" data-state="${h.state}">${cd}</span>
+              </div>
+              ${verdictHtml(h)}
+              <div class="kv">
+                <span class="k">schedule</span>
+                <span class="v"><a href="${HASHSCAN}/schedule/${h.scheduleId}" target="_blank" rel="noopener">${h.scheduleId}</a></span>
+                <span class="k">payer</span><span class="v">${h.payer}</span>
+                <span class="k">payee</span><span class="v">${h.payee}</span>
+                <span class="k">deadline</span><span class="v">${new Date(h.armedDeadline * 1000).toISOString().replace("T", " ").slice(0, 19)}Z${h.probesUsed ? ` · moved ${h.probesUsed} probe(s)` : ""}</span>
+                <span class="k">H(k)</span><span class="v">${short(h.hKey)}</span>
+                <span class="k">H(C)</span><span class="v">${short(h.hCipher)}</span>
+                <span class="k">H(m)</span><span class="v">${short(h.hPlain)}</span>
+                <span class="k">H(request)</span><span class="v">${short(h.hRequest)}</span>
+                ${h.key ? `<span class="k">key revealed</span><span class="v">${short(h.key)}</span>` : ""}
+              </div>
+            </div>`;
+          })
+          .join("");
+      }
+
+      // The countdowns tick every second between polls, so the page reads as
+      // live time rather than as a screenshot.
+      function tickCountdowns() {
+        const nowS = Math.floor(Date.now() / 1000);
+        document.querySelectorAll(".cd").forEach((el) => {
+          if (el.dataset.state !== "OPEN") return;
+          const left = Number(el.dataset.deadline) - nowS;
+          el.classList.toggle("soon", left < 20);
+          if (left <= 0) {
+            el.textContent = "refund due…";
+          } else {
+            const m = Math.floor(left / 60);
+            el.textContent = (m > 0 ? m + "m " : "") + (left % 60) + "s";
+          }
+        });
+      }
+
+      async function poll() {
+        try {
+          const holds = buildHolds(await fetchLogs());
+          // Only OPEN and REFUNDED holds need their schedule record: OPEN to
+          // confirm it is armed, REFUNDED to show signatures: [].
+          await Promise.all(
+            holds.slice(0, 12).map(async (h) => {
+              if (h.state !== "CLAIMED") h.schedule = await fetchSchedule(h);
+            }),
+          );
+          render(holds);
+          $("lastPoll").textContent = "last read from the mirror node at " + new Date().toISOString().slice(11, 19) + "Z";
+        } catch (e) {
+          $("lastPoll").innerHTML = '<span class="err">mirror node unreachable: ' + e.message + "</span>";
+        }
+      }
+
+      $("escrowLink").textContent = ESCROW_ID;
+      $("escrowLink").href = `${HASHSCAN}/contract/${ESCROW_EVM}`;
+      setInterval(() => ($("clock").textContent = new Date().toISOString().replace("T", " ").slice(0, 19) + "Z"), 1000);
+      setInterval(tickCountdowns, 1000);
+      setInterval(poll, POLL_MS);
+      poll();
     </script>
   </body>
 </html>
