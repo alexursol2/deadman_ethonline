@@ -123,6 +123,13 @@ signature and makes the allowlist load-bearing. Contract code after that.
 - The minute-boundary skip fired on testnet for the first time (`probesUsed: 1`). The
   capacity-saturation branch still has never run on a real network.
 
+- **END TO END WORKS.** x402 settle -> openHold -> network-executed refund, run as one sequence on
+  testnet. A fresh agent wallet paid 0.5 HBAR through Blocky402 into the escrow, the server armed a
+  hold, the seller stayed silent, and the network refunded the buyer 54s later with `signatures: []`.
+  Buyer 3 HBAR -> 2.5 -> 3. Settlement `0.0.7162784-1788864119-121509010`, schedule `0.0.10420245`.
+  The seller never held the money at any point.
+- Gas held at the measured figures: openHold 1,668,661, refund 46,744 of 250,000.
+
 **Blocked** — Alex asked for the contract before Igor's review landed, so plan 04 and
 `HoldEscrow.sol` both still need that review. `docs/reviews/` is empty.
 

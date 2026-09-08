@@ -122,7 +122,15 @@ Further limits get added here as we find them. This section grows; it does not s
 
 ## Status
 
-Pre-implementation. This repo currently contains de-risking spikes only. Start with
+**Working end to end on Hedera testnet.** A real x402 payment settled through Blocky402 into
+`HoldEscrow` (`0.0.10419881`), a hold armed over it, the seller stayed silent, and the network
+refunded the buyer with `signatures: []` — nobody acted.
+[The run](docs/spikes/12-end-to-end.md).
+
+Still to build: the x402 resource server and the agent client (the track needs the request to go
+through a served endpoint, not straight to the facilitator), the live board, Privy, and `verify.ts`.
+
+Start with
 [`docs/SESSION-01.md`](docs/SESSION-01.md) for what was verified and what was not; the individual
 reports and their raw mirror-node evidence are in [`docs/spikes/`](docs/spikes/).
 `HoldEscrow.sol` is not written yet.
