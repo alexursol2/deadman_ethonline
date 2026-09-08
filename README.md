@@ -60,6 +60,13 @@ Known solutions we did not build, and why:
 
 ### Limits the spikes found
 
+**A hold costs the seller ~1.9 HBAR, so this does not work for micro-payments.** Measured:
+`openHold` is 1,668,661 gas and charged **1.77 HBAR**, `claim` about 0.13 more, and ~87% of that is
+`scheduleCall`'s own gas floor, which we cannot optimise away. At roughly $0.05/HBAR that is **~$0.09
+of protocol cost per hold**. Anything priced under ~2 HBAR loses money on every sale, so Deadman is
+viable for API calls worth a dollar or more and **not** for the sub-cent calls x402 is most often
+pitched at. [The numbers](docs/deploy.md).
+
 **The saturated-second path has never run on a real network.** When the requested second is full,
 `openHold` walks exponential-backoff candidates looking for a free one. Testnet is uncongested, so
 `hasScheduleCapacity` has returned true on every probe we have ever made. The minute-boundary skip
@@ -132,8 +139,11 @@ Three scenarios recorded: the seller delivers and the buyer decrypts; the seller
 network refunds; and **the server is killed while alive and holding the key, and the refund still
 lands** ([the runs](docs/spikes/13-server-agent.md)).
 
-Still to build: a public deployment (this runs on localhost against testnet), the live board, Privy,
-`verify.ts`, and HCS receipts.
+The server is **deployment-ready but not deployed**: Dockerfile, Render blueprint, health check, a
+least-privilege seller key and a token-gated admin endpoint are all in place and verified — the
+remaining step needs a hosting account. See [docs/deploy.md](docs/deploy.md).
+
+Still to build: the live board, Privy, `verify.ts`, and HCS receipts.
 
 Start with
 [`docs/SESSION-01.md`](docs/SESSION-01.md) for what was verified and what was not; the individual

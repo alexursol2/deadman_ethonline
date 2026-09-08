@@ -53,10 +53,30 @@ const HOLD_DEADLINE_SECONDS = Number(process.env.HOLD_DEADLINE_SECONDS || 60);
  */
 const CLAIM_DELAY_SECONDS = Number(process.env.SELLER_CLAIM_DELAY_SECONDS || 0);
 const ESCROW_ADDRESS = process.env.ESCROW_ADDRESS || "";
-const KEY = (process.env.HEDERA_OPERATOR_KEY || "").trim();
+
+/**
+ * The seller's signing key.
+ *
+ * SELLER_PRIVATE_KEY, not the operator key, whenever this runs anywhere public.
+ * The operator is the escrow's OWNER: it can sweepReserve, setConfig, setOwner
+ * and attributeOrphanedPayment. A hosted seller needs none of that — it only
+ * has to be an allowlisted opener, so a compromised host cannot drain the float
+ * or hand the contract to someone else.
+ *
+ * Falls back to the operator key for local development, where they are the same
+ * account anyway.
+ */
+const KEY = (process.env.SELLER_PRIVATE_KEY || process.env.HEDERA_OPERATOR_KEY || "").trim();
+
+/**
+ * Shared secret for /admin/dark. Required when the server is reachable publicly:
+ * without it, anyone who can reach the URL can stop our seller from revealing
+ * keys, which is a denial of service on our own demo.
+ */
+const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || "").trim();
 
 if (!ESCROW_ADDRESS) throw new Error("Set ESCROW_ADDRESS to the deployed HoldEscrow.");
-if (!KEY) throw new Error("Set HEDERA_OPERATOR_KEY — the seller signs openHold and claim.");
+if (!KEY) throw new Error("Set SELLER_PRIVATE_KEY — the seller signs openHold and claim.");
 
 const provider = new ethers.JsonRpcProvider(RPC, { chainId: 296, name: "hedera-testnet" });
 const seller = new ethers.Wallet(KEY.startsWith("0x") ? KEY : `0x${KEY}`, provider);
@@ -123,8 +143,21 @@ app.get("/health", async (_req, res) => {
   });
 });
 
-/** Flip the server dark on camera without restarting it. */
+/**
+ * Flip the server dark on camera without restarting it.
+ *
+ * Token-gated: on a public URL this endpoint is a denial of service on our own
+ * demo if anyone can call it. When ADMIN_TOKEN is unset the endpoint is refused
+ * outright rather than left open — failing closed is the only safe default for
+ * something that ships to a host.
+ */
 app.post("/admin/dark", (req, res) => {
+  if (!ADMIN_TOKEN) {
+    return res.status(503).json({ error: "ADMIN_TOKEN is not set; /admin/dark is disabled" });
+  }
+  if (req.header("X-Admin-Token") !== ADMIN_TOKEN) {
+    return res.status(401).json({ error: "bad or missing X-Admin-Token" });
+  }
   dark = Boolean(req.body?.on);
   console.log(`\n  *** DEMO_DARK = ${dark} — the seller will ${dark ? "NOT" : ""} reveal the key ***\n`);
   res.json({ dark });

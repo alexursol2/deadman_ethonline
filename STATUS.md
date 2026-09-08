@@ -140,6 +140,16 @@ signature and makes the allowlist load-bearing. Contract code after that.
   need `openHold` between settlement and the reply. Uses `@x402/core`'s official client instead.
 - `eth_getLogs` fails on HashIO for this contract, so the agent reads events from the mirror node.
 
+- **Deployment prepared, not deployed.** Dockerfile, Render blueprint (`render.yaml`), health check.
+  Two things had to change before going public, both done and verified:
+  a dedicated SELLER key (`0xEDde9234…`, isOpener true / isOwner false) so a compromised host cannot
+  sweep the float or take ownership; and `/admin/dark` token-gated, failing CLOSED when `ADMIN_TOKEN`
+  is unset. Verified 401/401/200. A 5 HBAR paid round ran end to end on the seller key.
+- **Cost measured, and it changes the pricing.** `openHold` is 1,668,661 gas = **1.77 HBAR charged**,
+  `claim` ~0.13 more. ~87% is `scheduleCall`'s own gas floor. Anything under ~2 HBAR loses money per
+  sale, so the price moved 0.5 -> 5 HBAR. ~$0.09/hold means Deadman does not work for micro-payments;
+  that is now in the README limits.
+
 **Blocked** — Alex asked for the contract before Igor's review landed, so plan 04 and
 `HoldEscrow.sol` both still need that review. `docs/reviews/` is empty.
 
