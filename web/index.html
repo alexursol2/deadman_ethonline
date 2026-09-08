@@ -244,8 +244,9 @@
         }
         if (h.state === "CLAIMED") {
           return `<div class="verdict">
-            the seller revealed the key and was paid. The armed refund was cancelled
-            ${h.schedule && h.schedule.deleted ? "(schedule deleted)" : ""}.
+            the seller revealed the key and was paid, and the armed refund was cancelled${
+              h.schedule && h.schedule.deleted ? " — schedule deleted" : ""
+            }.
           </div>`;
         }
         return `<div class="verdict">

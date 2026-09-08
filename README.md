@@ -15,6 +15,37 @@ anyone. Hedera has had network-executed scheduled *transfers* since HIP-423. **W
 that a contract arms its own refund from inside the EVM, atomically, in the transaction that takes
 the money.**
 
+## Live
+
+| | |
+|---|---|
+| x402 endpoint | **https://deadman-server.onrender.com** — `GET /premium?q=…` |
+| live board | **https://deadman-board.onrender.com** |
+| escrow | [`0.0.10426758`](https://hashscan.io/testnet/contract/0x1f928BF2261979A818Ade961f3b6d8aC1AAbe860) on Hedera testnet |
+| facilitator | Blocky402 (`api.testnet.blocky402.com`), fee payer `0.0.7162784` |
+
+The board reads the Hedera mirror node **directly from your browser**. It never calls our server,
+so it keeps working while we shut that server down — which is the demo.
+
+## Why nobody else can say "nobody"
+
+Every x402 escrow that exists needs a party to act when the seller does not deliver:
+
+| Design | Who has to act |
+|---|---|
+| x402 `upto` / `batch-settlement` | buyer locks, seller pulls vouchers — no timeout at all |
+| aegis-protocol (Base) | "permissionless validation": anyone *can* call it, so someone *must* |
+| Bonded escrow (Pranesh) | the buyer submits a signed receipt to claim |
+| Aegis402 | an LLM auditor decides |
+| Reckon402 | reputation has to accrue first |
+| Pinout (Hedera x402 winner) | metered-session remainder, not a delivery guarantee |
+| **Deadman** | **nobody** |
+
+Hedera has had network-executed scheduled *transfers* since HIP-423 — a person could already
+schedule one months out. What is new here is that **a contract arms its own refund from inside the
+EVM**, in the transaction that takes custody of the money, and then nothing further is required of
+anyone.
+
 ## Limits we are not hiding
 
 **The refund is armed one transaction after the payment lands, not in the same one.** We wanted
