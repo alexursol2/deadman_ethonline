@@ -157,6 +157,8 @@ contract SpikeSchedule {
     error HssMalformedReturn(string fn, bytes returnData);
     error HssNotSuccess(string fn, int64 code);
     error HssZeroScheduleAddress(int64 code);
+    /// @dev Spike 7's marker. Reaching this proves the delete returned 22 before we blew up.
+    error DeliberateRevert();
 
     /*//////////////////////////////////////////////////////////////
                             SCHEDULED TARGET
@@ -493,6 +495,31 @@ contract SpikeSchedule {
     function _decodeCode(bool callOk, bytes memory returnData) internal pure returns (int64) {
         if (!callOk || returnData.length < 32) return type(int64).min;
         return abi.decode(returnData, (int64));
+    }
+
+    /**
+     * @notice Delete a schedule, require the delete was ACCEPTED, then revert.
+     *
+     * @dev Spike 7. HIP-1215 does not say whether a system-contract effect
+     *      participates in EVM revert semantics. deleteSchedule mutates
+     *      consensus-node state outside the EVM's storage model, so "it is one
+     *      transaction, a revert unwinds it" is an EVM intuition, not a
+     *      documented guarantee.
+     *
+     *      If the deletion survives the revert, HoldEscrow.claim() must never
+     *      have a revertible operation after its delete — a caller would see a
+     *      failed transaction, assume nothing happened, and be wrong about the
+     *      one thing that matters.
+     *
+     *      The two revert reasons ARE the measurement. DeliberateRevert means
+     *      the delete was accepted and we then blew up on purpose.
+     *      HssNotSuccess means the delete was refused and the run proves nothing.
+     */
+    function deleteThenRevert(address scheduleAddress) external {
+        (bool callOk, bytes memory ret) = HSS.call(abi.encodeWithSelector(SEL_DELETE_SCHEDULE, scheduleAddress));
+        int64 code = _decodeCode(callOk, ret);
+        if (code != HSS_SUCCESS) revert HssNotSuccess("deleteSchedule(address)", code);
+        revert DeliberateRevert();
     }
 
     /*//////////////////////////////////////////////////////////////
