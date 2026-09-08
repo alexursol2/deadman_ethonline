@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deadman — live board</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0d10;
+        --fg: #e8eaed;
+        --dim: #8b929c;
+        --line: #232830;
+        --ok: #4ade80;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font: 16px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        padding: 2rem;
+      }
+      main { max-width: 46rem; width: 100%; }
+      h1 { font-size: 1.9rem; margin: 0 0 0.4rem; letter-spacing: -0.01em; }
+      .lead { color: var(--dim); margin: 0 0 2rem; }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 1.25rem 1.5rem;
+        background: #11141a;
+      }
+      .row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.35rem 0; }
+      .row + .row { border-top: 1px solid var(--line); }
+      .k { color: var(--dim); }
+      .v { text-align: right; word-break: break-all; }
+      .ok { color: var(--ok); }
+      code { color: var(--fg); }
+      footer { color: var(--dim); margin-top: 2rem; font-size: 0.85rem; }
+      a { color: inherit; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Deadman</h1>
+      <p class="lead">
+        Every x402 escrow needs someone to push a button.<br />
+        Ours is the only one where the protocol pushes it.
+      </p>
+
+      <div class="card">
+        <div class="row"><span class="k">board</span><span class="v ok">deployed</span></div>
+        <div class="row"><span class="k">live hold data</span><span class="v">not built yet</span></div>
+        <div class="row"><span class="k">escrow</span><span class="v"><code id="escrow">0.0.10426758</code></span></div>
+        <div class="row"><span class="k">network</span><span class="v">Hedera testnet</span></div>
+        <div class="row"><span class="k">clock</span><span class="v" id="clock">—</span></div>
+      </div>
+
+      <footer>
+        <p>
+          Placeholder. This page exists so the static service deploys and gets a URL; the board
+          itself is the next piece of work.
+        </p>
+        <p>
+          When it is built it will read the Hedera mirror node <strong>directly from your
+          browser</strong> and never call our backend — the demo kills our own servers, and a board
+          that died with them would destroy its own evidence.
+        </p>
+        <p>
+          <a href="https://github.com/alexursol2/deadman_ethonline">github.com/alexursol2/deadman_ethonline</a>
+        </p>
+      </footer>
+    </main>
+
+    <script>
+      // A visible ticking clock, so a screen recording shows real time passing
+      // rather than a still image. The countdowns will lean on the same idea.
+      const clock = document.getElementById("clock");
+      const tick = () => (clock.textContent = new Date().toISOString().replace("T", " ").slice(0, 19) + "Z");
+      tick();
+      setInterval(tick, 1000);
+    </script>
+  </body>
+</html>

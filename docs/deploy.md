@@ -57,6 +57,16 @@ Verified: `401` with no token, `401` with a wrong token, `200` with the right on
 `render.yaml` at the repo root is a Render blueprint. Docker, so it moves to Fly or Railway without
 changes — `server/Dockerfile` is the portable artefact.
 
+The blueprint now defines **two** services, so one apply gets both:
+
+| Service | Type | What it is |
+|---|---|---|
+| `deadman-server` | Docker web service | the x402 endpoint |
+| `deadman-board` | static site | the live board |
+
+A free web service sleeps after 15 minutes; a free **static site does not**. That suits the demo —
+the board stays up while the server is down, which is the thing the demo is showing.
+
 1. render.com → **New** → **Blueprint** → pick `alexursol2/deadman_ethonline`
 2. Set the three secrets in the dashboard (they are `sync: false` so they are never in git):
 

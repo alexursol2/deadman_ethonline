@@ -1,12 +1,21 @@
-# Render blueprint for the Deadman resource server.
+# Render blueprint — both services, one apply.
 #
-# Alex: this is the one step that needs your account.
+# Alex: this is the step that needs your account.
 #   1. render.com -> New -> Blueprint -> pick alexursol2/deadman_ethonline
-#   2. set the four secrets below (marked sync:false) in the dashboard
-#   3. deploy; the public URL is what goes in the submission
+#   2. set the three secrets below (marked sync:false) in the dashboard
+#   3. deploy. Two URLs come out: the API and the board.
 #
-# SELLER_PRIVATE_KEY must NOT be the operator key. See docs/deploy.md.
+# SELLER_PRIVATE_KEY must NOT be the operator key — the operator OWNS the
+# escrow. See docs/deploy.md.
+#
+# Worth knowing about the free tier, because it happens to suit the demo: a free
+# WEB SERVICE sleeps after 15 minutes of inactivity and takes ~30s to wake, but
+# a free STATIC SITE never sleeps. So the board stays up while the server is
+# down — which is exactly the thing the demo is trying to show. Do not let the
+# API cold-start mid-recording though; a 30s wake against a 60s refund deadline
+# is a timing assumption worth breaking in rehearsal rather than on camera.
 services:
+  # ── the x402 resource server ────────────────────────────────────────────
   - type: web
     name: deadman-server
     runtime: docker
@@ -39,3 +48,24 @@ services:
         sync: false
       - key: ADMIN_TOKEN
         sync: false
+
+  # ── the live board ──────────────────────────────────────────────────────
+  #
+  # Static on purpose, and this is the single most important architectural
+  # constraint on the page: it reads the Hedera mirror node directly from the
+  # browser and never calls our backend. The demo is killing our own
+  # infrastructure and watching the buyer get refunded anyway. A board that goes
+  # down with the server would destroy its own evidence.
+  #
+  # No build step — one HTML file published as-is, so what a judge views is what
+  # is in the repo.
+  - type: web
+    name: deadman-board
+    runtime: static
+    staticPublishPath: ./web
+    pullRequestPreviewsEnabled: false
+    buildCommand: ""
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
