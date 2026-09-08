@@ -150,6 +150,14 @@ signature and makes the allowlist load-bearing. Contract code after that.
   sale, so the price moved 0.5 -> 5 HBAR. ~$0.09/hold means Deadman does not work for micro-payments;
   that is now in the README limits.
 
+- **`verify.ts` written, and proven against three real cheats.** The agent now writes a receipt per
+  purchase; `npm run verify <holdId>` reads the authoritative commitments from the HoldOpened log,
+  the key from Claimed, and names the broken element. Holds 13 (honest), 14 (wrong-key), 15
+  (wrong-cipher), 16 (wrong-plain) — in every cheating case the chain is HAPPY and the seller is
+  PAID, which is exactly why the tool exists.
+- Added `SELLER_CHEAT` modes to the server so the lying-seller path is exercisable rather than
+  theoretical. A tool that has never caught anything is an assertion.
+
 **Blocked** — Alex asked for the contract before Igor's review landed, so plan 04 and
 `HoldEscrow.sol` both still need that review. `docs/reviews/` is empty.
 

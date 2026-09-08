@@ -52,6 +52,20 @@ const HOLD_DEADLINE_SECONDS = Number(process.env.HOLD_DEADLINE_SECONDS || 60);
  * needs no server, rather than merely no willingness.
  */
 const CLAIM_DELAY_SECONDS = Number(process.env.SELLER_CLAIM_DELAY_SECONDS || 0);
+
+/**
+ * Deliberate dishonesty, for demonstrating verify.ts. "none" in normal operation.
+ *
+ * A tool that has never caught anything is an assertion, not a tool. These make
+ * the seller lie in each of the ways the four commitments exist to detect:
+ *
+ *   wrong-key     encrypt with k1, commit and reveal k2. Passes claim()'s
+ *                 on-chain H(k) check and never opens the buyer's ciphertext.
+ *                 THE cheat the design is built around.
+ *   wrong-cipher  commit H(C') for a ciphertext we did not send.
+ *   wrong-plain   commit H(m') for plaintext the ciphertext does not contain.
+ */
+const CHEAT = (process.env.SELLER_CHEAT || "none") as "none" | "wrong-key" | "wrong-cipher" | "wrong-plain";
 const ESCROW_ADDRESS = process.env.ESCROW_ADDRESS || "";
 
 /**
@@ -138,6 +152,7 @@ app.get("/health", async (_req, res) => {
     escrowEntityId,
     facilitator: FACILITATOR,
     priceTinybar: PRICE_TINYBAR.toString(),
+    cheat: CHEAT,
     holdDeadlineSeconds: HOLD_DEADLINE_SECONDS,
     escrowFreeTinybar: free,
   });
@@ -217,12 +232,21 @@ app.get("/premium", async (req, res) => {
       return res.status(500).json({ error: "could not resolve the payer's EVM address" });
     }
 
+    // The key actually revealed later. Under "wrong-key" it is NOT the key the
+    // ciphertext was encrypted with — and claim() still accepts it, because the
+    // contract only ever checks H(revealed) against H(committed).
+    const revealKey = CHEAT === "wrong-key" ? newKey() : k;
+
     const commitments = {
-      hKey: hashBytes(k),
-      hCipher: hashBytes(ethers.getBytes(ciphertext)),
-      hPlain: hashUtf8(plaintext),
+      hKey: hashBytes(revealKey),
+      hCipher:
+        CHEAT === "wrong-cipher"
+          ? hashUtf8("a ciphertext we never sent")
+          : hashBytes(ethers.getBytes(ciphertext)),
+      hPlain: CHEAT === "wrong-plain" ? hashUtf8("plaintext we never produced") : hashUtf8(plaintext),
       hRequest: requestHash("GET", req.originalUrl, settleTxId),
     };
+    if (CHEAT !== "none") console.log(`  *** CHEATING: ${CHEAT} ***`);
     const deadline = BigInt(Math.floor(Date.now() / 1000) + HOLD_DEADLINE_SECONDS);
 
     // ~1.67M measured; scheduleCall's own floor dominates. Below ~1.8M this
@@ -276,7 +300,7 @@ app.get("/premium", async (req, res) => {
       await new Promise((r) => setTimeout(r, CLAIM_DELAY_SECONDS * 1000));
     }
     try {
-      const claimTx = await escrow.claim(holdId, ethers.hexlify(k), { gasLimit: 3_000_000 });
+      const claimTx = await escrow.claim(holdId, ethers.hexlify(revealKey), { gasLimit: 3_000_000 });
       await claimTx.wait();
       console.log(`  claimed hold ${holdId} — key is now public in the Claimed event`);
     } catch (err: any) {
@@ -310,6 +334,7 @@ async function main() {
   console.log(`  price        ${hbar(PRICE_TINYBAR)}   deadline +${HOLD_DEADLINE_SECONDS}s`);
   console.log(`  escrow free  ${hbar(free)}  (needs ${hbar(needed)})`);
   console.log(`  DEMO_DARK    ${dark}`);
+  if (CHEAT !== "none") console.log(`  SELLER_CHEAT ${CHEAT}  <- this seller is lying on purpose`);
   if (free < needed) console.log(`  WARNING: below the operating reserve; openHold will revert.`);
 
   app.listen(PORT, () => console.log(`\n  listening on :${PORT}   GET /premium?q=hello\n`));

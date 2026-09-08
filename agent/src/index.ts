@@ -14,6 +14,9 @@
  * or ask anyone for its money back. It watches, and if nothing arrives the
  * network has already given the money back.
  */
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { ethers } from "ethers";
 import { AccountId, Hbar, PrivateKey, TransactionId, TransferTransaction } from "@hashgraph/sdk";
 // shared.js loads .env from the repo root, and does so before this module body runs.
@@ -128,6 +131,27 @@ async function oneRound(round: number, escrow: ethers.Contract, escrowAddress: s
   }
   const body = (await paid.json()) as any;
   console.log(`  paid. hold ${body.holdId}, schedule ${body.scheduleEntityId}`);
+
+  // Keep a receipt. verify.ts needs the ciphertext we were actually handed —
+  // the chain records what the seller COMMITTED to, and the whole point is to
+  // compare the two. Note the commitments stored here are the seller's own
+  // claim over HTTP; verify.ts reads the authoritative ones from the log.
+  const receipt = {
+    holdId: body.holdId,
+    escrow: body.escrow,
+    requestMethod: "GET",
+    url: new URL(url).pathname + new URL(url).search,
+    ciphertext: body.ciphertext,
+    commitmentsClaimedByServer: body.commitments,
+    settleTxId: body.settleTxId,
+    scheduleEntityId: body.scheduleEntityId,
+    armedDeadline: body.armedDeadline,
+    receivedAt: new Date().toISOString(),
+  };
+  const dir = resolve(dirname(fileURLToPath(import.meta.url)), "../receipts");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(resolve(dir, `hold-${body.holdId}.json`), `${JSON.stringify(receipt, null, 2)}\n`);
+  console.log(`  receipt -> agent/receipts/hold-${body.holdId}.json  (npm run verify ${body.holdId})`);
   console.log(`  got ${ethers.getBytes(body.ciphertext).length} bytes of ciphertext, and no key`);
 
   /* the buyer's own check: the ciphertext we were handed must be the one committed */

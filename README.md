@@ -42,8 +42,14 @@ garbage, reveal the correct key, and get paid. The contract cannot read the plai
 try to judge it.
 
 What the four commitments (`H(k)`, `H(C)`, `H(m)`, `H(request)`) do buy: a cheated buyer holds
-cryptographic proof of exactly which element the seller lied about, and `verify.ts` detects it in
-one command. That is evidence, not enforcement.
+cryptographic proof of exactly which element the seller lied about, and
+[`verify.ts`](agent/src/verify.ts) detects it in one command. That is evidence, not enforcement.
+
+**Demonstrated, not asserted.** Three separate cheats were run against the live testnet escrow — a
+seller that reveals a key which passes the on-chain check and does not open the ciphertext, one that
+commits to a ciphertext it did not send, and one that commits to plaintext the ciphertext does not
+contain. In all three the chain is happy and the seller is paid, and `verify.ts` names the broken
+commitment. [The runs](docs/spikes/14-verify.md).
 
 Known solutions we did not build, and why:
 
@@ -143,7 +149,7 @@ The server is **deployment-ready but not deployed**: Dockerfile, Render blueprin
 least-privilege seller key and a token-gated admin endpoint are all in place and verified — the
 remaining step needs a hosting account. See [docs/deploy.md](docs/deploy.md).
 
-Still to build: the live board, Privy, `verify.ts`, and HCS receipts.
+Still to build: the live board, Privy, and HCS receipts.
 
 Start with
 [`docs/SESSION-01.md`](docs/SESSION-01.md) for what was verified and what was not; the individual

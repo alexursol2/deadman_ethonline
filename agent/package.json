@@ -6,7 +6,8 @@
   "description": "Paying agent client for the Deadman x402 endpoint",
   "scripts": {
     "start": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify": "tsx src/verify.ts"
   },
   "dependencies": {
     "@hashgraph/sdk": "^2.81.0",
