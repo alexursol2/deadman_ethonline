@@ -16,6 +16,7 @@ corrected rather than copied. The original remains in git history at `5db2c03`.
 | [`README.md`](../README.md) | The pitch, the limits, how to run it. The front door for a judge. |
 | [`STATUS.md`](../STATUS.md) | Append-only daily log, one section per person. Where *progress* goes. |
 | **this file** | The code, the plan, the dates, the open gaps. |
+| [`docs/video-script.md`](video-script.md) | The 2–4 minute script, and the pre-flight list that matters more than the words. |
 | [`docs/plans/`](plans/) | Seven plans, each committed **before** its implementation. |
 | [`docs/spikes/`](spikes/) | Fifteen reports with the raw mirror-node JSON behind every number. |
 | [`docs/deploy.md`](deploy.md) | Deployment, secrets, and what a hold actually costs. |
