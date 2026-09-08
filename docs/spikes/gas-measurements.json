@@ -1,0 +1,18 @@
+{
+  "escrow": "0xc5241034C7c060361B0223B3c6d77d0A4bC8Ef09",
+  "openHoldGasUsed": "1668649",
+  "probesUsed": "0",
+  "refundExecutedTimestamp": "1788862404.005427208",
+  "refundSignatures": [],
+  "refundTxResult": "SUCCESS",
+  "refundChargedTinybar": 4954864,
+  "refundGasUsed": null,
+  "refundGasLimit": null,
+  "holdStatusAfterRefund": "3",
+  "claimGasUsed": "123038",
+  "claimDeletedSchedule": true,
+  "holdStatusAfterClaim": "2",
+  "openHoldGasUsedSecond": "1668637",
+  "recommendedRefundGas": null,
+  "measuredAt": "2026-09-08T10:14:00.354Z"
+}

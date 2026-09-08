@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "facilitator": "https://api.testnet.blocky402.com",
+  "feePayer": "0.0.7162784",
+  "buyerAccountId": "0.0.10418449",
+  "payToContract": "0.0.10418229",
+  "contractEvm": "0xB85688ca6D3317E371bF6E18b5A62903d65F535b",
+  "amountTinybar": "10000000",
+  "verify": {
+    "status": 200,
+    "json": {
+      "isValid": true,
+      "payer": "0.0.10418449"
+    }
+  },
+  "settle": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "transaction": "0.0.7162784@1788854559.596024460",
+      "network": "hedera:testnet",
+      "payer": "0.0.10418449"
+    }
+  },
+  "balanceBeforeTinybar": "300000000",
+  "balanceAfterTinybar": "310000000",
+  "creditedTinybar": "10000000",
+  "receiveCallsBefore": "1",
+  "receiveCallsAfter": "1",
+  "ranAt": "2026-09-08T08:02:54.383Z"
+}

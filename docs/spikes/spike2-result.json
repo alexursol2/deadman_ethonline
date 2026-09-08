@@ -1,0 +1,84 @@
+{
+  "passed": true,
+  "passedPath": "2a (0x16b deleteSchedule(address))",
+  "passed2a": true,
+  "passed2c": null,
+  "pingCountBefore": "1",
+  "neverExecuted": true,
+  "cells": {
+    "2a": {
+      "tag": "spike2a",
+      "txHash": "0x14a536327351a23e099ab8881d29131f1a4094b23ac5215839669dcdfcb23cd2",
+      "scheduleAddress": "0x00000000000000000000000000000000009Ea074",
+      "entityId": "0.0.10395764",
+      "expirySecond": 1788719685,
+      "code": "22",
+      "control": {
+        "exists": true,
+        "attemptsUsed": 1,
+        "status": 200,
+        "record": {
+          "admin_key": {
+            "_type": "ProtobufEncoded",
+            "key": "0a0518bbc0fa04"
+          },
+          "deleted": false,
+          "consensus_timestamp": "1788719385.720649106",
+          "creator_account_id": "0.0.10393158",
+          "executed_timestamp": null,
+          "expiration_time": "1788719685.000000000",
+          "memo": "",
+          "payer_account_id": "0.0.10395707",
+          "schedule_id": "0.0.10395764",
+          "signatures": [],
+          "transaction_body": "GkIKFiIUR6GiH7Acy9AKcpk3o1LbOYbhyiwQ8JMJIiQz1CXEc3Bpa2UyYQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "wait_for_expiry": true
+        }
+      },
+      "cancel": {
+        "path": "hss",
+        "txHash": "0xc6994e61fcbdfdc6ded06136416da3dc28c067d3cb361b2d8ecfdc54e3ebb441",
+        "txStatus": 1,
+        "callOk": true,
+        "code": "22",
+        "returnData": "0x0000000000000000000000000000000000000000000000000000000000000016",
+        "success": true
+      },
+      "afterCancel": {
+        "admin_key": {
+          "_type": "ProtobufEncoded",
+          "key": "0a0518bbc0fa04"
+        },
+        "deleted": true,
+        "consensus_timestamp": "1788719385.720649106",
+        "creator_account_id": "0.0.10393158",
+        "executed_timestamp": null,
+        "expiration_time": "1788719685.000000000",
+        "memo": "",
+        "payer_account_id": "0.0.10395707",
+        "schedule_id": "0.0.10395764",
+        "signatures": [],
+        "transaction_body": "GkIKFiIUR6GiH7Acy9AKcpk3o1LbOYbhyiwQ8JMJIiQz1CXEc3Bpa2UyYQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "wait_for_expiry": true
+      }
+    }
+  },
+  "finalRecord": {
+    "admin_key": {
+      "_type": "ProtobufEncoded",
+      "key": "0a0518bbc0fa04"
+    },
+    "deleted": true,
+    "consensus_timestamp": "1788719385.720649106",
+    "creator_account_id": "0.0.10393158",
+    "executed_timestamp": null,
+    "expiration_time": "1788719685.000000000",
+    "memo": "",
+    "payer_account_id": "0.0.10395707",
+    "schedule_id": "0.0.10395764",
+    "signatures": [],
+    "transaction_body": "GkIKFiIUR6GiH7Acy9AKcpk3o1LbOYbhyiwQ8JMJIiQz1CXEc3Bpa2UyYQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "wait_for_expiry": true
+  },
+  "ranAt": "2026-09-06T18:35:45.844Z"
+}

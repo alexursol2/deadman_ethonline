@@ -1,0 +1,51 @@
+{
+  "verdict": "ATOMIC — the deletion is rolled back with the transaction",
+  "atomic": true,
+  "testRan": true,
+  "positiveControlHolds": true,
+  "contract": "0xb0658012ee9dACD62BBEc5A11060B5Ff4674f29e",
+  "scheduleEntityId": "0.0.10418012",
+  "scheduleHashscan": "https://hashscan.io/testnet/schedule/0.0.10418012",
+  "armTx": "0xd0d3585e4c6030e12ce919bcd232a535442c4323190a59f0ceb35c3ec7d1986b",
+  "deleteThenRevertTx": "0x68d96af698be9d2ddea823f6c2756294d4827f27658b6ef3c24f9dbbc68183ea",
+  "revertErrorMessage": "0x84921ad7",
+  "revertDecoded": "DeliberateRevert()",
+  "deletionSurvivedRevert": false,
+  "pollWaitedMs": 17500,
+  "positiveControlCode": "22",
+  "recordAfterRevert": {
+    "admin_key": {
+      "_type": "ProtobufEncoded",
+      "key": "0a0518d9eefb04"
+    },
+    "deleted": false,
+    "consensus_timestamp": "1788851833.398183106",
+    "creator_account_id": "0.0.10393158",
+    "executed_timestamp": null,
+    "expiration_time": "1788852432.000000000",
+    "memo": "",
+    "payer_account_id": "0.0.10418009",
+    "schedule_id": "0.0.10418012",
+    "signatures": [],
+    "transaction_body": "GkIKFiIUsGWAEu6drNYrvsWhEGC1/0Z08p4Q8JMJIiQz1CXEc3Bpa2U3AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "wait_for_expiry": true
+  },
+  "recordFinal": {
+    "admin_key": {
+      "_type": "ProtobufEncoded",
+      "key": "0a0518d9eefb04"
+    },
+    "deleted": true,
+    "consensus_timestamp": "1788851833.398183106",
+    "creator_account_id": "0.0.10393158",
+    "executed_timestamp": null,
+    "expiration_time": "1788852432.000000000",
+    "memo": "",
+    "payer_account_id": "0.0.10418009",
+    "schedule_id": "0.0.10418012",
+    "signatures": [],
+    "transaction_body": "GkIKFiIUsGWAEu6drNYrvsWhEGC1/0Z08p4Q8JMJIiQz1CXEc3Bpa2U3AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "wait_for_expiry": true
+  },
+  "ranAt": "2026-09-08T07:17:49.981Z"
+}

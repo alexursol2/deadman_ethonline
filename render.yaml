@@ -1,0 +1,41 @@
+# Render blueprint for the Deadman resource server.
+#
+# Alex: this is the one step that needs your account.
+#   1. render.com -> New -> Blueprint -> pick alexursol2/deadman_ethonline
+#   2. set the four secrets below (marked sync:false) in the dashboard
+#   3. deploy; the public URL is what goes in the submission
+#
+# SELLER_PRIVATE_KEY must NOT be the operator key. See docs/deploy.md.
+services:
+  - type: web
+    name: deadman-server
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 4021
+      - key: HEDERA_TESTNET_RPC
+        value: https://testnet.hashio.io/api
+      - key: MIRROR_NODE_URL
+        value: https://testnet.mirrornode.hedera.com
+      - key: X402_FACILITATOR_URL
+        value: https://api.testnet.blocky402.com
+      - key: PRICE_TINYBAR
+        value: "500000000"
+      - key: HOLD_DEADLINE_SECONDS
+        value: "60"
+      - key: DEMO_DARK
+        value: "0"
+      - key: SELLER_CLAIM_DELAY_SECONDS
+        value: "0"
+      # ── set these in the dashboard, not here ──
+      - key: ESCROW_ADDRESS
+        sync: false
+      - key: SELLER_PRIVATE_KEY
+        sync: false
+      - key: ADMIN_TOKEN
+        sync: false

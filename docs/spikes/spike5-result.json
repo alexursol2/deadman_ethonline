@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "contract": "0x1eC142a50E44aafD7b234001bC31747ED83B1467",
+  "operator": "0x130C7B90E7aCE67680AfDd17355BF58812146435",
+  "results": {
+    "5a": {
+      "entityId": "0.0.10395984",
+      "hashscan": "https://hashscan.io/testnet/schedule/0.0.10395984",
+      "txHash": "0x157d63f46c318edd8001a07e74b3610eda13bdd90dab164f253a546fec2b4d3f",
+      "callOk": true,
+      "code": "22",
+      "returnData": "0x0000000000000000000000000000000000000000000000000000000000000016",
+      "deletedAfter": true,
+      "passed": true
+    },
+    "5b": {
+      "entityId": "0.0.10395988",
+      "hashscan": "https://hashscan.io/testnet/schedule/0.0.10395988",
+      "attempts": {
+        "hss": {
+          "txHash": "0x4890c8ca2b5d51547a9eec08c9b4d30070e31da76b07b586ff731a3ac1029c74",
+          "txStatus": 1,
+          "callResult": "0x0000000000000000000000000000000000000000000000000000000000000007",
+          "threw": null,
+          "decodedCode": "7",
+          "deletedAfter": false,
+          "refused": true,
+          "watchedMs": 17500
+        },
+        "redirect": {
+          "txHash": "0x96f01355d90a2e850d8f418ddbe2cf45665852e8e5e0365f59a2d02060056896",
+          "txStatus": 1,
+          "callResult": "0x0000000000000000000000000000000000000000000000000000000000000007",
+          "threw": null,
+          "decodedCode": "7",
+          "deletedAfter": false,
+          "refused": true,
+          "watchedMs": 17500
+        }
+      },
+      "passed": true
+    },
+    "5c": {
+      "adminKeyRaw": "0a0518b1c2fa04",
+      "decoded": {
+        "raw": "0a0518b1c2fa04",
+        "kind": "ContractID",
+        "contractNum": "10395953",
+        "entityId": "0.0.10395953"
+      },
+      "victimEntityId": "0.0.10395953",
+      "creatorAccountId": "0.0.10393158",
+      "payerAccountId": "0.0.10395953",
+      "adminKeyIsCreatingContract": true
+    }
+  },
+  "cleanedUp": true,
+  "ranAt": "2026-09-06T18:52:59.694Z"
+}

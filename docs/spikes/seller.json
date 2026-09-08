@@ -1,0 +1,9 @@
+{
+  "escrow": "0xc5241034C7c060361B0223B3c6d77d0A4bC8Ef09",
+  "sellerAddress": "0xEDde92344632132aA349Ac02838fb8c80a44931c",
+  "isOpener": true,
+  "isOwner": false,
+  "owner": "0x130C7B90E7aCE67680AfDd17355BF58812146435",
+  "balanceTinybar": "4000000000",
+  "provisionedAt": "2026-09-08T14:47:09.904Z"
+}

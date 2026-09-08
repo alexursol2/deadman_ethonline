@@ -1,0 +1,47 @@
+{
+  "passed": true,
+  "escrow": "0xc5241034C7c060361B0223B3c6d77d0A4bC8Ef09",
+  "escrowEntityId": "0.0.10419881",
+  "facilitator": "https://api.testnet.blocky402.com",
+  "feePayer": "0.0.7162784",
+  "buyer": "0x94049218CB4Ca70918e4A57D2A099cC296bf20f3",
+  "buyerAccountId": "0.0.10420243",
+  "seller": "0x130C7B90E7aCE67680AfDd17355BF58812146435",
+  "priceTinybar": "50000000",
+  "verify": {
+    "status": 200,
+    "json": {
+      "isValid": true,
+      "payer": "0.0.10420243"
+    }
+  },
+  "settle": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "transaction": "0.0.7162784@1788864119.121509010",
+      "network": "hedera:testnet",
+      "payer": "0.0.10420243"
+    }
+  },
+  "settleTxId": "0.0.7162784@1788864119.121509010",
+  "creditedTinybar": "50000000",
+  "holdId": "4",
+  "openHoldTx": "0xf5cb9e06f30a1c991d4f3497eec967987c068a1c0f62c69b1c710a174fbe75be",
+  "openHoldGasUsed": "1668661",
+  "scheduleEntityId": "0.0.10420245",
+  "scheduleHashscan": "https://hashscan.io/testnet/schedule/0.0.10420245",
+  "armedDeadline": "1788864174",
+  "probesUsed": "0",
+  "executedTimestamp": "1788864174.018234916",
+  "signatures": [],
+  "refundGasUsed": 46744,
+  "holdStatus": "3",
+  "buyerStartTinybar": "300000000",
+  "buyerAfterSettleTinybar": "250000000",
+  "buyerEndTinybar": "300000000",
+  "paidTinybar": "50000000",
+  "refundLandedTinybar": "50000000",
+  "buyerIsWhole": true,
+  "ranAt": "2026-09-08T10:43:15.477Z"
+}

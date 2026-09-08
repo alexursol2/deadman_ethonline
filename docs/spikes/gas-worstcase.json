@@ -1,0 +1,20 @@
+{
+  "escrow": "0x8F3c145A39726c431f3B47f3BAA69053c2537e57",
+  "hostilePayer": "0x9942E776598452bFFFD9eD684eF05bbe0eAaF1ec",
+  "holdId": "3",
+  "scheduleEntityId": "0.0.10419811",
+  "scheduleHashscan": "https://hashscan.io/testnet/schedule/0.0.10419811",
+  "openHoldGasUsed": "1668649",
+  "probesUsed": "0",
+  "executedTimestamp": "1788862069.121557208",
+  "signatures": [],
+  "scheduledTxResult": "SUCCESS",
+  "scheduledTxHash": "0x9cc9459d973a97d0b3069b6e1f96bf1f653d8176eac49005d6cc515363dd77d8",
+  "refundGasUsedWorstCase": 90805,
+  "refundGasLimit": 400000,
+  "holdStatus": "3",
+  "creditedTinybar": "100000000",
+  "currentRefundGas": "400000",
+  "recommendedRefundGas": "200000",
+  "measuredAt": "2026-09-08T10:08:11.132Z"
+}

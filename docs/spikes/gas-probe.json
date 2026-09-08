@@ -1,0 +1,14 @@
+{
+  "minTxGasLowerBound": 1445312,
+  "minTxGasUpperBound": 1468750,
+  "resolution": 25000,
+  "coupledToScheduledGasLimit": false,
+  "firstWorkingTxGasByScheduledGasLimit": {
+    "50000": 1500000,
+    "150000": 1500000,
+    "500000": 1500000
+  },
+  "recommendedTxGas": 5000000,
+  "note": "scheduleCall starved of gas reverts with EMPTY returndata and consumes everything forwarded. HIP-1215's 'never reverts' covers business failures, which return a code, not gas starvation.",
+  "probedAt": "2026-09-06T18:27:41.958Z"
+}

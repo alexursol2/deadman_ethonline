@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "verdict": "TINYBARS — the inference was right",
+  "valueParamPassed": "300000000",
+  "unitIsTinybar": true,
+  "payingContract": "0x275A49bF78E632e8fc0D0A05A1336D57f4541Ed4",
+  "sink": "0xCFCAC6045396306401566daA455a7e81056187D7",
+  "scheduleEntityId": "0.0.10412082",
+  "scheduleHashscan": "https://hashscan.io/testnet/schedule/0.0.10412082",
+  "armTx": "0xcddb6cfdd1f6536c4ae93a0adf5874ace89cbea195abc20f34e633d5713a6a63",
+  "expirySecond": 1788815571,
+  "executedTimestamp": "1788815571.010051208",
+  "signatures": [],
+  "scheduledGasRequested": 250000,
+  "before": {
+    "sinkRpcWeibar": "0",
+    "sinkEvmTinybar": "0",
+    "escrowRpcWeibar": "20000000000000000000",
+    "escrowEvmTinybar": "2000000000",
+    "landings": "0"
+  },
+  "after": {
+    "sinkRpcWeibar": "3000000000000000000",
+    "sinkEvmTinybar": "300000000",
+    "escrowRpcWeibar": "16861152910000000000",
+    "escrowEvmTinybar": "1686115291",
+    "landings": "1",
+    "lastMsgValue": "300000000",
+    "lastSender": "0x275A49bF78E632e8fc0D0A05A1336D57f4541Ed4",
+    "lastBalanceTinybar": "300000000"
+  },
+  "sinkGainTinybar": "300000000",
+  "sinkGainViaRpcTinybar": "300000000",
+  "escrowDropTinybar": "313884709",
+  "executionGasTinybar": "13884709",
+  "msgValueInsideScheduledCall": "300000000",
+  "scheduledCallMsgSender": "0x275A49bF78E632e8fc0D0A05A1336D57f4541Ed4",
+  "ranAt": "2026-09-07T21:13:18.510Z"
+}

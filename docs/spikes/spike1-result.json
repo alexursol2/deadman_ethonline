@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "scheduleEntityId": "0.0.10395748",
+  "scheduleHashscan": "https://hashscan.io/testnet/schedule/0.0.10395748",
+  "expirySecond": 1788719349,
+  "executedTimestamp": "1788719349.003729824",
+  "executionLatencyMs": 4,
+  "signatures": [],
+  "waitForExpiry": true,
+  "deleted": false,
+  "pingCount": "1",
+  "lastPingTimestamp": "1788719347",
+  "lastPingSender": "0x47A1a21fb01CCbd00a729937a352dB3986E1CA2c",
+  "lastTag": "0x7370696b65310000000000000000000000000000000000000000000000000000",
+  "mirrorAttemptsUsed": 1,
+  "jitterFallbackExercised": false,
+  "jitterCaveat": "probesUsed was 0 — testnet uncongested, capacity/jitter fallback never executed. Untested code on the critical path. Not verified.",
+  "prevrandaoVerdict": "prevrandao: USABLE (non-zero, varies across blocks)",
+  "prngVerdict": "prng 0x169 : USABLE (non-zero, varies across blocks)",
+  "verifiedAt": "2026-09-06T18:29:24.582Z"
+}

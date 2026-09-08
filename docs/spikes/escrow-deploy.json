@@ -1,0 +1,15 @@
+{
+  "contract": "0xc5241034C7c060361B0223B3c6d77d0A4bC8Ef09",
+  "entityId": "0.0.10419881",
+  "hashscan": "https://hashscan.io/testnet/contract/0xc5241034C7c060361B0223B3c6d77d0A4bC8Ef09",
+  "deployer": "0x130C7B90E7aCE67680AfDd17355BF58812146435",
+  "deployTx": "0xf89f33dfebfe6d72fa16c1c9479b58608b343a992d43ab0d1c278fc6c2ac2e3b",
+  "fundTx": "0xb1c636f8462f4a4e443e3ecf468f2163aa68b5536574301b70c8dd419495f2b9",
+  "fundedHbar": "25.0",
+  "balanceTinybar": "2500000000",
+  "freeTinybar": "2500000000",
+  "refundGasConstant": "250000",
+  "refundGasDepositTinybar": "50000000",
+  "minOperatingReserveTinybar": "500000000",
+  "deployedAt": "2026-09-08T10:12:35.788Z"
+}

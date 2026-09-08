@@ -1,0 +1,93 @@
+# Spike 2 — can a contract cancel its own pending schedule?
+
+**Verdict: YES, on the happy path (2a).** Run 2026-09-06.
+
+This was risk #2 from the brief and the one that would have changed the product. It does not.
+
+| | |
+|---|---|
+| Schedule | **`0.0.10395764`** — [HashScan](https://hashscan.io/testnet/schedule/0.0.10395764) |
+| Expiry second | `1788719685` |
+| Cancel tx | [`0xc6994e61…ebb441`](https://hashscan.io/testnet/transaction/0xc6994e61fcbdfdc6ded06136416da3dc28c067d3cb361b2d8ecfdc54e3ebb441) |
+| Path | 2a — `deleteSchedule(address)` on `0x16b`, called **by the contract that armed it** |
+| Response | `callOk=true`, `code=22` (`SUCCESS`), returndata `0x…16` |
+
+## Sequence and pass conditions
+
+```
+armed 0.0.10395764, expiring 1788719685
+control read   -> exists, deleted=false, executed_timestamp=null   (1 attempt)
+tryCancelViaHss -> callOk=true  code=22
+re-read        -> deleted=true,  executed_timestamp=null           (1 attempt)
++60s past expiry:
+               -> deleted=true,  executed_timestamp=null
+               -> pingCount 1 before, 1 after
+```
+
+| Condition | Expected | Actual | |
+|---|---|---|---|
+| A contract-side delete returned SUCCESS | code 22 | 22 | PASS |
+| Mirror shows `deleted: true` | true | true | PASS |
+| Still `deleted: true` past the expiry second | true | true | PASS |
+| `executed_timestamp` never populated | null | null | PASS |
+| `pingCount` unchanged | 1 | 1 | PASS |
+
+**The control read is what makes this mean anything.** Before cancelling, the schedule was confirmed
+present on the mirror node with `deleted: false` and `executed_timestamp: null`. Without that, "it
+never executed" would be equally consistent with "it was never created", and we would have concluded
+the happy path works on the strength of a schedule that never existed.
+
+Evidence: [`spike2-result.json`](spike2-result.json), [`spike2-confirm.json`](spike2-confirm.json),
+[`spike2-final-schedule.json`](spike2-final-schedule.json),
+[`spike2-console.log`](spike2-console.log).
+
+**Confirmed twice, independently.** `spike2.cjs` ran the whole sequence including its own wait past
+the expiry second and recorded `passed: true, neverExecuted: true`. Separately, `spike2-confirm.cjs`
+re-read the same schedule from a cold start 60 seconds past expiry and reached the same verdict. The
+duplication was accidental — mid-run the console output looked truncated and the run appeared to have
+been killed, so the confirmation was written as a recovery path. It completed fine. Two independent
+reads of the same outcome is a better position than one, and `spike2-confirm.cjs` stays because the
+multi-minute wait is a real fragility in a script we will re-run.
+
+## What this means for the design
+
+The happy path in the brief survives intact:
+
+> Seller delivers, reveals the key, gets paid, and the booked refund is cancelled.
+
+`claim()` can call `deleteSchedule(scheduleAddress)` on `0x16b` directly and treat anything other
+than `22` as a failure. No external signer, no keeper, no fallback product. Combined with Spike 1's
+result — the network executes the scheduled call as the scheduling contract itself — both halves of
+the mechanism are now confirmed on live testnet rather than inferred from the HIP.
+
+## What this result does NOT establish
+
+**The redirect path (2c) was not exercised here**, because 2a passed and the script correctly
+stopped. **Closed since:** the owner contract cancels successfully via the redirect path too, code
+22 ([spike 5a](05-caveat-closure.md)), so both delete paths now work from the owner. The EOA cells
+2b and 2d are covered by [spike 4](04-third-party-delete.md) and [5b](05-caveat-closure.md), which
+found strangers *and* our own deployer refused.
+
+**The mirror-node backoff never fired here** — every read succeeded on the first attempt. That
+turned out to be luck rather than a promptly consistent network: [spike 5](05-caveat-closure.md)
+hit a stale-but-successful read that a single GET recorded as a failed delete, and the backoff as
+originally written did not catch it because it only retried on HTTP *errors*. Now fixed to poll on
+a predicate. The live board should assume staleness, not hope for its absence.
+
+**One cancel, one schedule, one moment.** This is a single observation on an uncongested testnet. It
+does not establish behaviour under load, nor the race the brief calls out — claim and refund landing
+in the same second, where exactly one must win. That race is a `HoldEscrow` concern and belongs in
+Igor's Wednesday adversarial tests, not here.
+
+## Open question for the escrow — since answered
+
+Deletion succeeded when called by the contract that created the schedule. That left the obvious
+follow-up: can an unrelated contract or a third-party EOA delete someone else's schedule? If so it
+is a denial-of-service on the refund guarantee — an attacker deletes the booked refund and the
+buyer's money sits in the hold with nothing to release it. The difference between "the network will
+refund you" and "the network will refund you unless somebody cancels it first".
+
+**Answered: no.** See [spike 4](04-third-party-delete.md) — strangers are refused with
+`INVALID_SIGNATURE` on both delete paths — and [spike 5](05-caveat-closure.md), where the admin key
+is read off the schedule record as the creating contract's ContractID, and our own deploying EOA is
+refused too.
