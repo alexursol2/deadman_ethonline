@@ -51,7 +51,7 @@ const HOLD_DEADLINE_SECONDS = Number(process.env.HOLD_DEADLINE_SECONDS || 60);
  * payment, and fully intends to claim — so that killing it proves the refund
  * needs no server, rather than merely no willingness.
  */
-const CLAIM_DELAY_SECONDS = Number(process.env.SELLER_CLAIM_DELAY_SECONDS || 0);
+let claimDelaySeconds = Number(process.env.SELLER_CLAIM_DELAY_SECONDS || 0);
 
 /**
  * Deliberate dishonesty, for demonstrating verify.ts. "none" in normal operation.
@@ -154,6 +154,7 @@ app.get("/health", async (_req, res) => {
     priceTinybar: PRICE_TINYBAR.toString(),
     cheat: CHEAT,
     holdDeadlineSeconds: HOLD_DEADLINE_SECONDS,
+    claimDelaySeconds,
     escrowFreeTinybar: free,
   });
 });
@@ -173,9 +174,16 @@ app.post("/admin/dark", (req, res) => {
   if (req.header("X-Admin-Token") !== ADMIN_TOKEN) {
     return res.status(401).json({ error: "bad or missing X-Admin-Token" });
   }
-  dark = Boolean(req.body?.on);
-  console.log(`\n  *** DEMO_DARK = ${dark} — the seller will ${dark ? "NOT" : ""} reveal the key ***\n`);
-  res.json({ dark });
+  if (req.body?.on !== undefined) dark = Boolean(req.body.on);
+  // Runtime-settable so the kill demo does not need a redeploy per attempt. The
+  // window is the whole point of that test: the seller has to be alive and
+  // INTENDING to reveal when the host is suspended, or all it proves is
+  // unwillingness — which the dark flag already covers.
+  if (req.body?.claimDelaySeconds !== undefined) {
+    claimDelaySeconds = Math.max(0, Math.min(300, Number(req.body.claimDelaySeconds) || 0));
+  }
+  console.log(`\n  *** dark=${dark}  claimDelay=${claimDelaySeconds}s ***\n`);
+  res.json({ dark, claimDelaySeconds });
 });
 
 app.get("/premium", async (req, res) => {
@@ -295,9 +303,9 @@ app.get("/premium", async (req, res) => {
       console.log(`  *** DARK: not revealing the key. The refund will fire at ${armedDeadline}. ***`);
       return;
     }
-    if (CLAIM_DELAY_SECONDS > 0) {
-      console.log(`  holding the key for ${CLAIM_DELAY_SECONDS}s — kill me now and the refund still lands`);
-      await new Promise((r) => setTimeout(r, CLAIM_DELAY_SECONDS * 1000));
+    if (claimDelaySeconds > 0) {
+      console.log(`  holding the key for ${claimDelaySeconds}s — kill me now and the refund still lands`);
+      await new Promise((r) => setTimeout(r, claimDelaySeconds * 1000));
     }
     try {
       const claimTx = await escrow.claim(holdId, ethers.hexlify(revealKey), { gasLimit: 3_000_000 });
@@ -333,7 +341,7 @@ async function main() {
   console.log(`  facilitator  ${FACILITATOR}  feePayer ${feePayer}`);
   console.log(`  price        ${hbar(PRICE_TINYBAR)}   deadline +${HOLD_DEADLINE_SECONDS}s`);
   console.log(`  escrow free  ${hbar(free)}  (needs ${hbar(needed)})`);
-  console.log(`  DEMO_DARK    ${dark}`);
+  console.log(`  DEMO_DARK    ${dark}   claimDelay ${claimDelaySeconds}s`);
   if (CHEAT !== "none") console.log(`  SELLER_CHEAT ${CHEAT}  <- this seller is lying on purpose`);
   if (free < needed) console.log(`  WARNING: below the operating reserve; openHold will revert.`);
 
