@@ -145,6 +145,25 @@ element. Proven against three real cheats where the chain was happy and the sell
 
 ---
 
+## `/web` — the live board
+
+**`index.html`** — one file, no build, no framework, no backend.
+
+It reads the Hedera mirror node **directly from the browser** and never calls our resource server.
+That is the single most important thing about it: the demo shuts our own infrastructure down, and a
+board that went down with it would destroy its own evidence. Served as a Render static site, which
+on the free tier does not sleep — so it stays up while the API sleeps, which happens to be exactly
+the picture the demo wants.
+
+Built around the trap [spike 8](spikes/08-scheduled-revert.md) found: a network-executed call does
+**not** appear under `/contracts/{address}/results`. Reading the refund from there would show it
+never happened. The path is schedule record → `executed_timestamp` → `/transactions?timestamp=`, and
+the refund line renders `signatures: []` because that field is the product.
+
+Event data is decoded by slicing fixed-width hex words rather than bundling ethers — every field
+needed is a static 32-byte word. The decoding was validated against live logs in node before being
+written into the page.
+
 ## `/docs`
 
 `plans/` (seven, each committed **before** its implementation, per the ETHGlobal attribution rule),
