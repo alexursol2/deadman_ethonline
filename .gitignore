@@ -23,3 +23,6 @@ coverage.json
 Thumbs.db
 .vscode/
 .idea/
+
+# Alex's working notes — untracked on request. Delete this line to track it.
+docs/PROGRESS.md
