@@ -140,7 +140,8 @@ Shared with the agent deliberately: a disagreement about how `H(C)` is computed 
 like a lying seller. Also loads `.env` from the repo root, because `dotenv/config` resolves against
 the working directory and silently found nothing.
 
-**`Dockerfile`, `../render.yaml`** — deployment-ready. Not deployed; that needs a hosting account.
+**`Dockerfile`, `../render.yaml`** — the blueprint behind the two live services above. One `render.yaml`
+produces both: the API as a Docker web service and the board as a static site.
 
 ---
 
@@ -152,6 +153,20 @@ the working directory and silently found nothing.
 It reads events from the **mirror node**, not `eth_getLogs`, which fails on HashIO for this contract
 on every range tried. Second trap in the same area: the mirror's `topic0`/`topic1` filters only work
 alongside a timestamp range and silently return nothing otherwise — so it filters client-side.
+
+**`src/signer.ts`** — where the agent's key lives, behind one interface with two backends. `local`
+reads `AGENT_PRIVATE_KEY`; `privy` holds no key at all and signs by API call. Set `PRIVY_WALLET_ID`
+to pick the second. The non-obvious part is that x402 on Hedera pays with a native
+`TransferTransaction`, so Privy's EVM signing methods are the wrong shape and the bridge is raw
+`secp256k1Sign` over `keccak256(bodyBytes)`. It also recovers the wallet's public key from a
+signature — Privy does not return one, Hedera needs it — and refuses to continue unless that key
+derives the wallet's own address.
+
+**`src/privy-*.ts`** — provisioning and the evidence behind [spike 16](spikes/16-privy.md).
+`privy-wallet.ts` creates or shows the wallet, `privy-fund.ts` funds it (a new address needs a gas
+limit far above 21,000; creation is charged 607,854), `privy-hedera-spike.ts` proves the signing
+bridge, `privy-policy-spike.ts` runs the policy matrix, `privy-wildcard-retest.ts` re-runs the one
+cell that first came back inconclusive, and `privy-apply-policy.ts` sets the final policy.
 
 **`src/verify.ts` (221)** — the buyer's proof tool. The contract enforces one of the four commitments
 and cannot decrypt, so it cannot know whether the key it accepted opens the ciphertext. This reads
@@ -218,9 +233,9 @@ saturated-second path has never run on a real network; and we guarantee delivery
 
 | Day | Alex | Igor | Frontend | Media |
 |---|---|---|---|---|
-| **Mon 8** | ~~`HoldEscrow.sol`~~ **done** — plus server, agent, verify.ts, all working on testnet | **Design review — NOT done.** `docs/reviews/` is empty | Privy wallet on chain 296, alias activation | Storyboard, README first screen |
+| **Mon 8** | ~~`HoldEscrow.sol`~~ **done** — plus server, agent, verify.ts, all working on testnet | **Design review — NOT done.** `docs/reviews/` is empty | ~~Privy wallet on chain 296, alias activation~~ **done Wed** | Storyboard, README first screen |
 | **Tue 9** | ~~x402 server through Blocky402~~ **done**, fee-payer gate check confirmed | Start adversarial tests | Board shell, first hold rendering | 30-second cut, tested on an outsider |
-| **Wed 10** | ~~First real paid request end to end~~ **done Monday**; the public deploy is what remains | **Contract review**, plus the mocked HSS (mock exists, 28 tests) | Privy spend policy on the agent | Draft both partner write-ups against the rubrics |
+| **Wed 10** | ~~First real paid request end to end~~ **done Monday**; ~~the public deploy~~ **done** | **Contract review**, plus the mocked HSS (mock exists, 28 tests) | ~~Privy spend policy on the agent~~ **attempted, and it cannot bind this rail — [spike 16](spikes/16-privy.md)** | Draft both partner write-ups against the rubrics |
 | **Thu 11** | HCS receipts on every state change | Finish adversarial tests, commit them | Countdown timers, mirror links, infra status panel | Rough cut |
 | **Fri 12** | **Feature freeze.** Clean-clone test. Both `FEEDBACK.md` files | **Whole-repo review from a clean clone** | Polish, mobile, empty states | Cut to 4 minutes, **test upload** |
 | **Sat 13** | Limits, hygiene gate, AI plan files. **Submit tonight** | Rehearse the shutdown demo three times cold | Final deploy, verify from a phone | Final video rendered and uploaded |
