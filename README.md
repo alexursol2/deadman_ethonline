@@ -39,12 +39,26 @@ Every x402 escrow that exists needs a party to act when the seller does not deli
 | Aegis402 | an LLM auditor decides |
 | Reckon402 | reputation has to accrue first |
 | Pinout (Hedera x402 winner) | metered-session remainder, not a delivery guarantee |
+| [Boson x402B](https://github.com/bosonprotocol/x402B) (Base) | the **buyer**, and quickly — silence releases the money to the seller |
 | **Deadman** | **nobody** |
 
 Hedera has had network-executed scheduled *transfers* since HIP-423 — a person could already
 schedule one months out. What is new here is that **a contract arms its own refund from inside the
 EVM**, in the transaction that takes custody of the money, and then nothing further is required of
 anyone.
+
+Boson's [x402B](https://github.com/bosonprotocol/x402B) is the closest prior work we have found, and
+it is a serious piece of engineering — a non-custodial escrow scheme for x402 with a published wire
+format. It differs from this in the direction its clock points. There, funds *"release to the seller
+only after the buyer signals delivery (or the dispute window expires)"*: silence pays the seller, and
+the buyer must open a dispute to stop it. Here silence refunds the buyer. That inversion is the whole
+argument — an autonomous agent is exactly the buyer least able to notice it has been cheated and act
+inside a window.
+
+The second difference is who moves the funds. The x402-escrow-schema state machine marks its expiry
+transitions with no actor at all, which is the honest thing for a wire format to do: it is
+implementation-defined, and on an EVM chain a state change still needs somebody to send a
+transaction. This is the gap HIP-1215 closes, and it is why the project is on Hedera.
 
 ## Limits we are not hiding
 
