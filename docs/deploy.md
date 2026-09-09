@@ -82,10 +82,17 @@ the board stays up while the server is down, which is the thing the demo is show
 3. Deploy. `healthCheckPath` is `/health`, so Render will not route traffic to a broken build.
 4. Point the agent at it: `RESOURCE_URL=https://<your-service>.onrender.com/premium`
 
-**Render's free tier sleeps after 15 minutes of inactivity** and takes ~30s to wake. For the demo,
-either take a paid instance or hit `/health` shortly before filming. A cold start during the video
-would look exactly like the failure we are claiming to survive, which is the worst possible
-confusion to introduce.
+**Render's free tier sleeps after 15 minutes of inactivity.** Measured wake, after ~10 hours of
+genuine zero traffic: **52,533 ms**. The three requests behind it took 320, 336 and 284 ms. Note
+that `healthCheckPath` does *not* keep the instance awake — it gates deploys and nothing else.
+
+The wake does **not** shorten a hold. The deadline is computed as `now + HOLD_DEADLINE_SECONDS` in
+the settlement path (`server/src/index.ts:258`), which only runs once the instance is already up, so
+a cold start delays the first request and costs the refund window zero seconds.
+
+It remains a recording hazard for a different reason: 52 seconds of apparent nothing looks exactly
+like the failure we are claiming to survive, which is the worst possible confusion to introduce.
+Hit `/health` shortly before filming, or take a paid instance.
 
 ## Keeping it funded
 

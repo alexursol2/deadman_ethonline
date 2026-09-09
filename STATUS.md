@@ -88,10 +88,28 @@ One section per person, appended daily. Landed / next / blocked.
 Render block. Nothing has been written against an API that cannot be tested; per the brief's
 one-hour rule the fallback is an embedded wallet in the board, and that decision is still open.
 
-**PENDING — cold-start measurement.** Two attempts were taken while the service was still inside
-Render's 15-minute idle window, so both read warm (~350ms) and prove nothing. A third is running
-with a proper 18-minute idle. Until it reports, treat the ~30s cold-start figure as Render's
-documented behaviour rather than something we have measured.
+**MEASURED — cold start is 52.5 seconds, not the ~30s we had written down.** Three attempts were
+wasted first: each was taken inside Render's 15-minute idle window because overlapping background
+tasks of mine kept touching the endpoint, so all three read ~300-380 ms and proved nothing. The
+service then sat untouched overnight, which gave the clean condition for free:
+
+| request | result |
+| --- | --- |
+| 1 (cold) | HTTP 200 in **52,533 ms** |
+| 2 | HTTP 200 in 320 ms |
+| 3 | HTTP 200 in 336 ms |
+| 4 | HTTP 200 in 284 ms |
+
+Two findings. `healthCheckPath: /health` does **not** keep a free instance awake — it gates deploys
+only, and the overnight sleep disproves the hypothesis. And the wake does **not** eat the refund
+window: the deadline is `now + HOLD_DEADLINE_SECONDS`, computed at `server/src/index.ts:258` in the
+settlement path, which runs after the instance is up. That answers the question plan 08 asked —
+*what does the cold start do to a 60-second deadline?* Nothing. It delays the first request by ~52s
+and shortens the hold by zero seconds.
+
+It is still a recording hazard: 52 seconds of apparent nothing on camera reads as the exact failure
+we claim to survive. `render.yaml`, `docs/deploy.md` and `docs/video-script.md` corrected in the same
+commit — the ~30s figure was Render's documentation, never our observation.
 
 **NEEDS ALEX — the kill test.** Suspending the service is a dashboard action. Sequence: set
 `{"on":false,"claimDelaySeconds":45}`, start a purchase, and hit **Suspend** the moment the hold

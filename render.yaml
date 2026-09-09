@@ -9,11 +9,22 @@
 # escrow. See docs/deploy.md.
 #
 # Worth knowing about the free tier, because it happens to suit the demo: a free
-# WEB SERVICE sleeps after 15 minutes of inactivity and takes ~30s to wake, but
-# a free STATIC SITE never sleeps. So the board stays up while the server is
-# down — which is exactly the thing the demo is trying to show. Do not let the
-# API cold-start mid-recording though; a 30s wake against a 60s refund deadline
-# is a timing assumption worth breaking in rehearsal rather than on camera.
+# WEB SERVICE sleeps after 15 minutes of inactivity, but a free STATIC SITE never
+# sleeps. So the board stays up while the server is down — which is exactly the
+# thing the demo is trying to show.
+#
+# MEASURED, after ~10 hours of genuine zero traffic: the first request took
+# 52,533 ms. Warm requests after it: 320, 336, 284 ms. Two earlier attempts read
+# ~350 ms and were worthless — both were taken inside the 15-minute window.
+#
+# Two things follow. (1) healthCheckPath does NOT keep a free instance awake; it
+# gates deploys, nothing more. (2) The wake does not eat the refund window: the
+# deadline is computed as now+60 in the settlement path (server/src/index.ts),
+# which runs after the instance is already up. A cold start delays the FIRST
+# request by ~52s and shortens the hold by zero seconds.
+#
+# It is still a recording hazard — 52 seconds of apparent nothing looks exactly
+# like the failure we claim to survive. Warm /health before filming.
 services:
   # ── the x402 resource server ────────────────────────────────────────────
   - type: web

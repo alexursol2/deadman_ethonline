@@ -12,8 +12,9 @@ problem, then the rest is one continuous unbroken shot of the thing working.
 ## Before you record
 
 - [ ] Wake the API — `curl https://deadman-server.onrender.com/health` — and **keep it warm**. Free
-      tier sleeps after 15 minutes. A cold start mid-take looks exactly like the failure we claim to
-      survive, which is the worst possible confusion to introduce.
+      tier sleeps after 15 minutes and the measured wake is **52 seconds**. A cold start mid-take
+      looks exactly like the failure we claim to survive, which is the worst possible confusion to
+      introduce. It does not shorten the hold, but it will wreck the take.
 - [ ] Check the seller and escrow balances. A hold costs the seller ~1.9 HBAR and the escrow needs
       float to execute refunds; running dry mid-take produces a revert that reads like a contract bug.
 - [ ] Set the claim delay so you have a window to kill the server in:
