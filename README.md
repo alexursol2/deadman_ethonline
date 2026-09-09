@@ -40,6 +40,7 @@ Every x402 escrow that exists needs a party to act when the seller does not deli
 | Reckon402 | reputation has to accrue first |
 | Pinout (Hedera x402 winner) | metered-session remainder, not a delivery guarantee |
 | [Boson x402B](https://github.com/bosonprotocol/x402B) (Base) | the **buyer**, and quickly — silence releases the money to the seller |
+| [Held](https://github.com/lxfoundry/held) (Boson on Base) | a hosted watchdog raises the dispute *for* the buyer |
 | **Deadman** | **nobody** |
 
 Hedera has had network-executed scheduled *transfers* since HIP-423 — a person could already
@@ -89,6 +90,14 @@ try to judge it.
 What the four commitments (`H(k)`, `H(C)`, `H(m)`, `H(request)`) do buy: a cheated buyer holds
 cryptographic proof of exactly which element the seller lied about, and
 [`verify.ts`](agent/src/verify.ts) detects it in one command. That is evidence, not enforcement.
+
+This is an oracle problem, and we do not claim to have solved it. Ludo of LX Foundry put the
+boundary precisely when we asked him: a contract cannot know whether a *future* delivery will be
+correct unless the result is predictable before it is bought, and otherwise you need a third-party
+assessor. Pinning an IPFS file is his example of the predictable case, and it is the case where this
+design becomes enforcement rather than evidence: when the buyer knows `H(m)` in advance, the
+commitment the contract already checks is the whole guarantee. For an LLM completion, which is what
+we demo, it cannot be.
 
 **Demonstrated, not asserted.** Three separate cheats were run against the live testnet escrow — a
 seller that reveals a key which passes the on-chain check and does not open the ciphertext, one that
