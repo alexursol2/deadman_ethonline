@@ -7,7 +7,8 @@ cd agent && npm install && npm start
 ```
 
 Needs `AGENT_PRIVATE_KEY` in the repo-root `.env` — an ECDSA key whose Hedera account already
-exists. Creating one costs ~2,000,000 gas, not a transfer's 21,000, because paying an address Hedera
+exists. Creating one needs a gas LIMIT far above a transfer's 21,000 or it fails outright; the gas
+actually charged is 607,854 (measured, spike 16). Paying an address Hedera
 has never seen also creates it.
 
 ## What it does

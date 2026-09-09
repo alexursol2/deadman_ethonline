@@ -17,9 +17,12 @@ corrected rather than copied. The original remains in git history at `5db2c03`.
 | live board | https://deadman-board.onrender.com |
 | escrow | `0.0.10426758` = `0x1f928BF2261979A818Ade961f3b6d8aC1AAbe860` |
 | seller | `0xEDde92344632132aA349Ac02838fb8c80a44931c` — allowlisted opener, **not** the owner |
+| agent wallet | `0.0.10433495` = `0x7118a1522588fa585Ae7DBfb085c5793D57DA0c1` — a **Privy** server wallet; no key on any machine of ours |
 
 Both services come from one Render blueprint (`render.yaml`). The API is a Docker web service and
-sleeps after 15 minutes idle on the free tier; the board is a static site and does not.
+sleeps after 15 minutes idle on the free tier; the board is a static site and does not. **Measured
+cold start: 52.5 seconds** — it does not shorten a hold, because the deadline is armed after the
+instance is up, but it will wreck a take. Warm `/health` before filming.
 
 ### Where things live
 
@@ -192,7 +195,14 @@ written after the gate Alex set.
 board, and the whole path from a real x402 payment through Blocky402 to a network-executed refund
 with `signatures: []`. Verified against the public host, not only locally.
 
-**Not built:** Privy, HCS receipts, and the demo video.
+**Privy, working:** the agent's key does not exist locally. It is a Privy server wallet, and the
+x402 payment — a Hedera-native `TransferTransaction`, not an EVM one — is signed through Privy's raw
+`secp256k1Sign`. Proven end to end against the public host (hold 4, schedule `0.0.10433614`). The
+spend policy is the honest half: **it cannot bind this rail**, because raw signing has no
+`PolicyMethod` and the wildcard that permits it also voids the cap. Measured, tabulated and reported
+in [spike 16](spikes/16-privy.md) rather than papered over.
+
+**Not built:** HCS receipts and the demo video.
 
 **Not yet run:** the kill test against the *public* host. It needs someone to hit **Suspend** in the
 Render dashboard while a hold is armed and the seller is willing — a dashboard action, so it is the

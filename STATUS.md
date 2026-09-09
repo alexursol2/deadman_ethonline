@@ -84,9 +84,20 @@ One section per person, appended daily. Landed / next / blocked.
 
 **Next** — the kill test on the public host; then HCS receipts if there is room.
 
-**BLOCKED — Privy.** Needs a Privy app id and secret, which require an account, same shape as the
-Render block. Nothing has been written against an API that cannot be tested; per the brief's
-one-hour rule the fallback is an embedded wallet in the board, and that decision is still open.
+**DONE — Privy.** Unblocked once Alex supplied the app id, secret and authorization key. The agent
+now signs through a Privy server wallet (`0.0.10433495`) and **no private key exists on the machine**;
+a full purchase against the public host ran on it (hold 4, schedule `0.0.10433614`). The embedded-wallet
+fallback was not needed.
+
+The spend policy is where the honest reporting is. We could not ship the 6 HBAR cap the plan asked
+for, and the reason is structural: x402 on Hedera pays with a native `TransferTransaction`, which
+needs raw `secp256k1Sign`, which no `PolicyMethod` covers — so the only rule permitting it is
+`ALLOW *`, and that also lets an over-cap transfer through. Verified: 10 HBAR under a 6 HBAR cap.
+Two further findings on the way: Privy policies are **default-deny** (a DENY-only policy bricks the
+wallet, including the transfers it was meant to permit), and Privy does not return a wallet's public
+key, which Hedera needs — it has to be recovered from a signature and checked against the address.
+Full matrix in [spike 16](docs/spikes/16-privy.md). The shipped policy is a single `ALLOW *` rule
+whose name states the limitation, rather than a cap sitting next to a wildcard that voids it.
 
 **MEASURED — cold start is 52.5 seconds, not the ~30s we had written down.** Three attempts were
 wasted first: each was taken inside Render's 15-minute idle window because overlapping background
