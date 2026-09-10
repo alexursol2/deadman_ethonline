@@ -23,36 +23,19 @@
  *
  * We guarantee delivery, not correctness: a seller can still encrypt garbage,
  * commit to the hash of that garbage, and pass every check here. That limit is
- * on the first screen of the README. What this catches is a seller who was paid
- * for something the buyer provably cannot read.
+ * on the first screen of the README, `SELLER_CHEAT=garbage` exercises it, and
+ * `npm run reputation` is the thing that sees it. What this catches is a seller
+ * who was paid for something the buyer provably cannot read.
+ *
+ * The checks themselves live in audit.ts, so this tool and the policy cannot
+ * disagree about what an honest seller looks like.
  *
  *   npm run verify <holdId>
+ *   npm run verify <holdId> -- --json
  */
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { ethers } from "ethers";
-import {
-  ESCROW_ABI,
-  HOLD_STATUS,
-  RPC,
-  TOPIC,
-  asTopic,
-  contractLogs,
-  decrypt,
-  hashBytes,
-  hashUtf8,
-  hbar,
-  requestHash,
-} from "../../server/src/shared.js";
-
-const iface = new ethers.Interface(ESCROW_ABI);
-
-interface Check {
-  name: string;
-  detail: string;
-  ok: boolean | null; // null = not applicable
-}
+import { ESCROW_ABI, RPC, hbar } from "../../server/src/shared.js";
+import { auditHold, loadReceipt, receiptPathFor, type Check } from "./audit.js";
 
 function line(c: Check) {
   const mark = c.ok === null ? "  –  " : c.ok ? " OK  " : "FAIL ";
@@ -60,147 +43,71 @@ function line(c: Check) {
 }
 
 async function main() {
-  const holdId = process.argv[2];
-  if (!holdId) throw new Error("usage: npm run verify <holdId>");
+  const args = process.argv.slice(2);
+  const asJson = args.includes("--json");
+  const holdId = args.find((a) => !a.startsWith("--"));
+  if (!holdId) throw new Error("usage: npm run verify <holdId> [-- --json]");
 
-  const receiptPath = resolve(dirname(fileURLToPath(import.meta.url)), `../receipts/hold-${holdId}.json`);
-  const receipt = JSON.parse(readFileSync(receiptPath, "utf8"));
-  const escrowAddress: string = receipt.escrow || process.env.ESCROW_ADDRESS || "";
+  const receipt = loadReceipt(holdId);
+  const escrowAddress: string = receipt?.escrow || process.env.ESCROW_ADDRESS || "";
+  if (!escrowAddress) throw new Error("No escrow address: no receipt for this hold and ESCROW_ADDRESS unset.");
 
   const provider = new ethers.JsonRpcProvider(RPC, { chainId: 296, name: "hedera-testnet" });
   const escrow = new ethers.Contract(escrowAddress, ESCROW_ABI, provider);
 
-  console.log(`\n  verify — hold ${holdId}`);
-  console.log(`  ${"─".repeat(70)}`);
-  console.log(`  escrow   ${escrowAddress}`);
-  console.log(`  receipt  agent/receipts/hold-${holdId}.json`);
-
-  /* ── 1. the authoritative commitments, from the chain ── */
-  const openedLogs = await contractLogs(escrowAddress, { topic0: TOPIC.HoldOpened, topic1: asTopic(holdId) }, 100);
-  if (!openedLogs.length) throw new Error(`No HoldOpened event for hold ${holdId}. Wrong escrow, or too old.`);
-  const opened = iface.parseLog({ topics: openedLogs[0].topics, data: openedLogs[0].data })!;
-
-  const onChain = {
-    hKey: opened.args.hKey as string,
-    hCipher: opened.args.hCipher as string,
-    hPlain: opened.args.hPlain as string,
-    hRequest: opened.args.hRequest as string,
-  };
-  const amount = opened.args.amountTinybar as bigint;
-  console.log(`  amount   ${hbar(amount)}`);
-
-  const hold = await escrow.getHold(holdId);
-  const status = HOLD_STATUS[Number(hold.status)];
-  console.log(`  status   ${status}`);
-
-  const checks: Check[] = [];
-
-  /* ── 2. did the server's HTTP reply match what it actually committed? ── */
-  // The seller told us its commitments over HTTP. That claim is not evidence.
-  const claimed = receipt.commitmentsClaimedByServer ?? {};
-  const httpMatches = (["hKey", "hCipher", "hPlain", "hRequest"] as const).every(
-    (k) => String(claimed[k]).toLowerCase() === String((onChain as any)[k]).toLowerCase(),
-  );
-  checks.push({
-    name: "the seller's HTTP response matches what it committed on-chain",
-    detail: httpMatches
-      ? "the reply and the log agree"
-      : "the reply advertised different commitments than the log records — the log is what counts",
-    ok: httpMatches,
-  });
-
-  /* ── 3. the request this hold answers ── */
-  const expectedRequest = requestHash(receipt.requestMethod, receipt.url, receipt.settleTxId);
-  const requestOk = expectedRequest.toLowerCase() === onChain.hRequest.toLowerCase();
-  checks.push({
-    name: "H(request) — this hold answers OUR request",
-    detail: requestOk
-      ? `${onChain.hRequest.slice(0, 18)}…`
-      : `committed ${onChain.hRequest.slice(0, 18)}… but our request hashes to ${expectedRequest.slice(0, 18)}…`,
-    ok: requestOk,
-  });
-
-  /* ── 4. the ciphertext we were handed ── */
-  const ourCipherHash = hashBytes(ethers.getBytes(receipt.ciphertext));
-  const cipherOk = ourCipherHash.toLowerCase() === onChain.hCipher.toLowerCase();
-  checks.push({
-    name: "H(C) — the seller committed to the ciphertext it sent us",
-    detail: cipherOk
-      ? `${onChain.hCipher.slice(0, 18)}…`
-      : `committed ${onChain.hCipher.slice(0, 18)}… but we hold bytes hashing to ${ourCipherHash.slice(0, 18)}…`,
-    ok: cipherOk,
-  });
-
-  /* ── 5. the key, if it was ever revealed ── */
-  const claimedLogs = await contractLogs(escrowAddress, { topic0: TOPIC.Claimed, topic1: asTopic(holdId) }, 100);
-  let plaintext: string | null = null;
-
-  if (!claimedLogs.length) {
-    const refunded = Number(hold.status) === 3;
-    console.log(
-      refunded
-        ? `\n  The seller never revealed a key and the hold was REFUNDED.`
-        : `\n  No key revealed yet. Nothing to verify until the seller claims or the refund fires.`,
-    );
-    checks.push({ name: "H(k) — the revealed key matches its commitment", detail: "no key revealed", ok: null });
-    checks.push({ name: "the key opens the ciphertext", detail: "no key revealed", ok: null });
-    checks.push({ name: "H(m) — the plaintext matches its commitment", detail: "no key revealed", ok: null });
-  } else {
-    const k = ethers.getBytes(claimedLogs[0].data as string);
-
-    // Contract-enforced, so this passing proves nothing about honesty — it is
-    // here so a failure would be unmissable, because it would mean the chain
-    // itself disagrees with itself.
-    const keyOk = hashBytes(k).toLowerCase() === onChain.hKey.toLowerCase();
-    checks.push({
-      name: "H(k) — the revealed key matches its commitment",
-      detail: keyOk ? "enforced on-chain by claim(); consistent" : "THE CHAIN DISAGREES WITH ITSELF",
-      ok: keyOk,
-    });
-
-    // The check the contract cannot make.
-    let decryptOk = false;
-    try {
-      plaintext = decrypt(receipt.ciphertext, k);
-      decryptOk = true;
-    } catch {
-      decryptOk = false;
-    }
-    checks.push({
-      name: "the revealed key OPENS the ciphertext",
-      detail: decryptOk
-        ? `${Buffer.byteLength(plaintext!)} bytes of plaintext recovered`
-        : "the key was accepted on-chain and does NOT decrypt what we were given",
-      ok: decryptOk,
-    });
-
-    if (decryptOk) {
-      const ourPlainHash = hashUtf8(plaintext!);
-      const plainOk = ourPlainHash.toLowerCase() === onChain.hPlain.toLowerCase();
-      checks.push({
-        name: "H(m) — the plaintext matches its commitment",
-        detail: plainOk
-          ? `${onChain.hPlain.slice(0, 18)}…`
-          : `committed ${onChain.hPlain.slice(0, 18)}… but it decrypts to something hashing to ${ourPlainHash.slice(0, 18)}…`,
-        ok: plainOk,
-      });
-    } else {
-      checks.push({ name: "H(m) — the plaintext matches its commitment", detail: "cannot check; it did not open", ok: null });
-    }
+  if (!asJson) {
+    console.log(`\n  verify — hold ${holdId}`);
+    console.log(`  ${"─".repeat(70)}`);
+    console.log(`  escrow   ${escrowAddress}`);
+    console.log(`  receipt  ${receipt ? `agent/receipts/hold-${holdId}.json` : `MISSING — ${receiptPathFor(holdId)}`}`);
   }
 
-  /* ── verdict ── */
-  console.log(`\n${checks.map(line).join("\n")}`);
-  const failed = checks.filter((c) => c.ok === false);
+  const audit = await auditHold(holdId, escrow, escrowAddress);
+
+  /* Machine-readable, because a verdict a human has to read is a verdict no
+   * buying policy can act on. This is the record ERC-8004 feedback is missing:
+   * bound to a payment, recomputable by anyone from the same chain data. */
+  if (asJson) {
+    console.log(
+      JSON.stringify(
+        {
+          holdId: audit.holdId,
+          escrow: audit.escrow,
+          provider: audit.provider,
+          payer: audit.payer,
+          payee: audit.payee,
+          amountTinybar: audit.amountTinybar.toString(),
+          status: audit.status,
+          verdict: audit.verdict,
+          commitments: audit.onChain,
+          checks: audit.checks,
+          broken: audit.broken.map((c) => c.id),
+        },
+        null,
+        2,
+      ),
+    );
+    if (audit.broken.length) process.exitCode = 1;
+    return;
+  }
+
+  console.log(`  amount   ${hbar(audit.amountTinybar)}`);
+  console.log(`  status   ${audit.status}`);
+  if (audit.note) console.log(audit.note);
+
+  console.log(`\n${audit.checks.map(line).join("\n")}`);
+  const failed = audit.broken;
   console.log(`  ${"─".repeat(70)}`);
 
   if (!failed.length) {
-    const anyChecked = checks.some((c) => c.ok === true);
+    const anyChecked = audit.checks.some((c) => c.ok === true);
     console.log(anyChecked ? `  VERDICT: everything the seller committed to holds up.` : `  VERDICT: nothing to check yet.`);
-    if (plaintext) console.log(`\n${plaintext.split("\n").map((l) => `      ${l}`).join("\n")}`);
+    if (audit.plaintext) console.log(`\n${audit.plaintext.split("\n").map((l) => `      ${l}`).join("\n")}`);
     console.log(
       `\n  Note: this proves DELIVERY, not correctness. A seller can encrypt` +
-        `\n  garbage, commit to the hash of that garbage, and pass every check here.\n`,
+        `\n  garbage, commit to the hash of that garbage, and pass every check here.` +
+        `\n  That cheat is invisible to this tool by construction; run` +
+        `\n  \`npm run reputation\` for the part of the answer that is not a proof.\n`,
     );
     return;
   }

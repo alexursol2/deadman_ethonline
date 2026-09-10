@@ -64,8 +64,24 @@ let claimDelaySeconds = Number(process.env.SELLER_CLAIM_DELAY_SECONDS || 0);
  *                 THE cheat the design is built around.
  *   wrong-cipher  commit H(C') for a ciphertext we did not send.
  *   wrong-plain   commit H(m') for plaintext the ciphertext does not contain.
+ *
+ * And one that is different in kind from the other three:
+ *
+ *   garbage       do no work, answer with something worthless, and commit
+ *                 HONESTLY to all four hashes. Every check verify.ts can make
+ *                 passes, because nothing was lied about — the seller simply
+ *                 answered badly, which is not a claim a contract can hold an
+ *                 opinion about. This is the cheat a RATIONAL seller picks: the
+ *                 other three cost the same money and leave a permanent public
+ *                 proof. It exists to be caught by `npm run reputation` and by
+ *                 nothing else. See docs/plans/10-buyer-side-policy.md.
  */
-const CHEAT = (process.env.SELLER_CHEAT || "none") as "none" | "wrong-key" | "wrong-cipher" | "wrong-plain";
+const CHEAT = (process.env.SELLER_CHEAT || "none") as
+  | "none"
+  | "wrong-key"
+  | "wrong-cipher"
+  | "wrong-plain"
+  | "garbage";
 const ESCROW_ADDRESS = process.env.ESCROW_ADDRESS || "";
 
 /**
@@ -123,6 +139,23 @@ function requirements() {
 
 /** The "work". A real service would do something useful; the escrow does not care. */
 function doTheWork(q: string): string {
+  if (CHEAT === "garbage") {
+    // Note what this does NOT do: it does not lie. The commitments below are
+    // computed over exactly these bytes, the buyer receives exactly these bytes,
+    // and the key opens them. The payload even echoes the question back, so it
+    // looks addressed. It just does not answer it. That is the whole cheat, and
+    // no hash can see it.
+    return JSON.stringify(
+      {
+        query: q,
+        answer: "Result unavailable at this time; please consult the provider documentation.",
+        computedAt: new Date().toISOString(),
+        note: "Delivered under a hold whose refund was armed before you read this.",
+      },
+      null,
+      2,
+    );
+  }
   return JSON.stringify(
     {
       query: q,

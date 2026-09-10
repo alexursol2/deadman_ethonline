@@ -91,6 +91,21 @@ What the four commitments (`H(k)`, `H(C)`, `H(m)`, `H(request)`) do buy: a cheat
 cryptographic proof of exactly which element the seller lied about, and
 [`verify.ts`](agent/src/verify.ts) detects it in one command. That is evidence, not enforcement.
 
+**And it only catches the seller that was inconsistent.** A seller that does no work, answers with
+something worthless, and commits honestly to the hash of exactly those bytes has lied about no
+element — so there is nothing for `verify.ts` to find. That cheat costs the same money as the other
+three and leaves no proof, which makes it the one a rational seller picks. The commitments catch the
+*inconsistent* liar, not the *consistent* one, and that is the difference between a bug and an
+adversary. `SELLER_CHEAT=garbage` is that cheat, in the server, so the limit is demonstrable rather
+than asserted.
+
+The answer to it is not a cryptographic one. `npm run reputation` is a buyer-side policy over the
+same chain data: proofs never expire and are one strike, quality judgements decay and a provider can
+recover from them. It bounds the *rate* at which a seller can rob you. It does not get a single
+payment back, the judge it ships with is deliberately weak, and the market it assumes has a median
+seller lifetime of $3.96 — all of which is set out in
+[docs/reputation.md](docs/reputation.md) before anything is claimed for it.
+
 This is an oracle problem, and we do not claim to have solved it. Ludo of LX Foundry put the
 boundary precisely when we asked him: a contract cannot know whether a *future* delivery will be
 correct unless the result is predictable before it is bought, and otherwise you need a third-party
@@ -117,6 +132,15 @@ Known solutions we did not build, and why:
 - **Optimistic fraud proofs** with a seller bond and a challenge window are the most promising
   extension, and the challenge window would itself be a second HIP-1215 schedule — the same
   primitive rather than a new keeper. **This is our documented next step.**
+- **On-chain reputation (ERC-8004)** is the natural home for the proofs, and a Deadman hold is
+  exactly the feedback record such a registry lacks: payee, `H(request)`, the amount, the settlement
+  that funded it, and an outcome the network wrote rather than a reviewer. We did not publish into
+  it. The measured Sybil share of ERC-8004 feedback is 41.4% / 92.6% / 96.3% on Ethereum / Base /
+  BSC and ~98% of its reviews have no proof of payment or task behind them, so adding one good
+  record to that set does not make the set good — the contribution would be the evidence
+  requirement, which is a protocol argument rather than an integration. The narrower version,
+  publishing only the proofs and keying them on the payee address, is sketched in
+  [docs/reputation.md](docs/reputation.md).
 
 ### Limits the spikes found
 
@@ -206,18 +230,18 @@ Three scenarios recorded: the seller delivers and the buyer decrypts; the seller
 network refunds; and **the server is killed while alive and holding the key, and the refund still
 lands** ([the runs](docs/spikes/13-server-agent.md)).
 
-The server is **deployment-ready but not deployed**: Dockerfile, Render blueprint, health check, a
-least-privilege seller key and a token-gated admin endpoint are all in place and verified — the
-remaining step needs a hosting account. See [docs/deploy.md](docs/deploy.md).
+The server is **deployed** at the URL in the table above, from one Render blueprint that also
+serves the board: Dockerfile, health check, a least-privilege seller key and a token-gated admin
+endpoint, all in place and verified. See [docs/deploy.md](docs/deploy.md). The agent signs through a
+Privy server wallet, so no private key exists on any machine of ours.
 
-Still to build: the live board, Privy, and HCS receipts.
+Still to build: HCS receipts.
 
 A file-by-file walkthrough of the whole codebase is in [docs/CODEMAP.md](docs/CODEMAP.md).
 
 Start with
 [`docs/SESSION-01.md`](docs/SESSION-01.md) for what was verified and what was not; the individual
 reports and their raw mirror-node evidence are in [`docs/spikes/`](docs/spikes/).
-`HoldEscrow.sol` is not written yet.
 
 ## Layout
 
@@ -243,6 +267,9 @@ cd contracts && npx hardhat run scripts/deploy-escrow.cjs --network hederaTestne
 cd server   && npm install && npm start
 cd agent    && npm install && npm start
 ```
+
+After a purchase, `npm run verify <holdId>` re-checks every commitment against the chain and
+`npm run reputation` scores the provider it came from.
 
 Set `ESCROW_ADDRESS` in `.env` from the deploy output. The escrow needs an operating float: it pays
 every armed refund's execution gas from its own balance, and `openHold` refuses to open a hold it

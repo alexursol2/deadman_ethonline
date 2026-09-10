@@ -38,8 +38,9 @@ instance is up, but it will wreck a take. Warm `/health` before filming.
 | [`docs/checkins/`](checkins/) | ETHGlobal check-in text. |
 | [`docs/SESSION-01.md`](SESSION-01.md) | The spike session write-up. |
 
-**Roughly 1,580 lines of Solidity, 3,000 of scripts, 790 of TypeScript services, 360 of tests**, plus
-fifteen spike reports with the raw mirror-node JSON behind every number quoted anywhere.
+**Roughly 1,770 lines of Solidity, 3,700 of spike and deploy scripts, 1,960 of TypeScript services
+and buyer tooling, 560 more of Privy provisioning, and 840 of tests**, plus seventeen spike reports
+with the raw mirror-node JSON behind every number quoted anywhere.
 
 The single most useful thing to know: **almost every unusual decision in this codebase traces to a
 measurement, and the measurement is cited at the line that depends on it.** Hedera's EVM differs from
@@ -168,10 +169,30 @@ limit far above 21,000; creation is charged 607,854), `privy-hedera-spike.ts` pr
 bridge, `privy-policy-spike.ts` runs the policy matrix, `privy-wildcard-retest.ts` re-runs the one
 cell that first came back inconclusive, and `privy-apply-policy.ts` sets the final policy.
 
-**`src/verify.ts` (221)** — the buyer's proof tool. The contract enforces one of the four commitments
-and cannot decrypt, so it cannot know whether the key it accepted opens the ciphertext. This reads
-the authoritative commitments from `HoldOpened`, the key from `Claimed`, and names the broken
-element. Proven against three real cheats where the chain was happy and the seller was paid.
+**`src/audit.ts`** — the commitment checks, in one place. `verify.ts` renders them for a human and
+`reputation.ts` counts them, and they must never answer differently: two implementations of one rule
+drift, and a drifted implementation here looks exactly like a lying seller — the failure `shared.ts`
+already exists to prevent. It also handles the case a receipt cannot: a hold that was CLAIMED while
+we hold no ciphertext at all, which is a seller paid for a delivery that did not happen.
+
+**`src/verify.ts`** — the buyer's proof tool, now a renderer over `audit.ts`. The contract enforces
+one of the four commitments and cannot decrypt, so it cannot know whether the key it accepted opens
+the ciphertext. This reads the authoritative commitments from `HoldOpened`, the key from `Claimed`,
+and names the broken element. Proven against three real cheats where the chain was happy and the
+seller was paid. `--json` emits the same verdict machine-readably, because a verdict a human has to
+read is one no buying policy can act on.
+
+**`src/quality.ts`** — the soft channel. The question no commitment can answer: was the answer any
+good. Structural by default and **deliberately weak** — scoring is not free, and a judge that
+pretends otherwise is the same dishonesty as an untested guard. `QUALITY_JUDGE_URL` is the seam for
+a real one.
+
+**`src/reputation.ts`** — the buyer-side policy, and the reason the correctness limit now has a
+second half. Two channels: proofs from the chain are **never** discounted and one is permanent
+exclusion; quality judgements decay and a provider recovers. Discounting a proof is how you get
+farmed, and forgetting is a channel a strategic seller plays — which is the gap in the PA-DCT policy
+this borrows its shape from. `npm run reputation`; the agent consults it before every round. Design,
+numbers and limits in [reputation.md](reputation.md).
 
 ---
 
@@ -196,8 +217,8 @@ written into the page.
 
 ## `/docs`
 
-`plans/` (seven, each committed **before** its implementation, per the ETHGlobal attribution rule),
-`spikes/` (fifteen reports plus raw JSON), `deploy.md`, `checkins/01.md`, `SESSION-01.md`.
+`plans/` (each committed **before** its implementation, per the ETHGlobal attribution rule),
+`spikes/` (seventeen reports plus raw JSON), `deploy.md`, `reputation.md`, `checkins/`, `SESSION-01.md`.
 
 `docs/reviews/` is **empty** — Igor has not reviewed plan 04 or `HoldEscrow.sol`, and both were
 written after the gate Alex set.
