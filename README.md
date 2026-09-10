@@ -91,6 +91,12 @@ What the four commitments (`H(k)`, `H(C)`, `H(m)`, `H(request)`) do buy: a cheat
 cryptographic proof of exactly which element the seller lied about, and
 [`verify.ts`](agent/src/verify.ts) detects it in one command. That is evidence, not enforcement.
 
+**The liar it catches is the inconsistent one.** A seller that does no work, answers with something
+worthless and commits honestly to the hash of exactly those bytes has lied about no element, so
+there is nothing to detect. That cheat costs the same money as the other three and leaves no proof,
+which makes it the one a rational seller picks — so `H(m)` is a check on a broken seller, not a
+defence against a deliberate one.
+
 This is an oracle problem, and we do not claim to have solved it. Ludo of LX Foundry put the
 boundary precisely when we asked him: a contract cannot know whether a *future* delivery will be
 correct unless the result is predictable before it is bought, and otherwise you need a third-party
@@ -114,6 +120,26 @@ Known solutions we did not build, and why:
   reintroduces the exact dependency this design removes.
   ([USC dual-deposit paper](https://anrg.usc.edu/www/papers/Dual_Deposit_ICBC_2019.pdf),
   [arxiv 1806.08379](https://arxiv.org/pdf/1806.08379))
+- **A buyer-side policy** is the only answer to that cheat that does not need a new cryptographic
+  primitive, because it is not one: it changes nothing about what a payment guarantees, only who
+  gets the *next* request, so a seller shipping junk loses the stream rather than the payment.
+  [402Pilot](https://arxiv.org/abs/2608.01341) (arXiv 2608.01341, Aug 2026) is the reference design.
+  Two things it needs are not ours to decide — a buyer that plays more than one round, and a judge,
+  since scoring quality is one more paid call and sometimes dearer than the service being judged.
+  What this escrow would add to it is a split the logs make possible: a broken commitment is a
+  *proof* anyone recomputes from `HoldOpened` and `Claimed` and should never be discounted, while a
+  quality score is an opinion and must be. Discounting a proof is how you get farmed, and forgetting
+  is a channel a strategic seller plays — 402Pilot's own benchmark has no strategic seller in it.
+  Honest limit on our side: the market's median seller has earned $3.96 in its lifetime, so the
+  future stream this threatens a cheat with is, today, worth almost nothing.
+- **On-chain reputation (ERC-8004)** is where those proofs would live, and a hold is already the
+  feedback record such a registry lacks: payee, `H(request)`, the amount, the settlement that funded
+  it, and an outcome the network wrote rather than a reviewer — no contract change needed, the
+  events carry all of it. We did not publish into it because the measured Sybil share of ERC-8004
+  feedback is 41.4% / 92.6% / 96.3% on Ethereum / Base / BSC and ~98% of its reviews have no proof
+  of payment or task behind them. Adding one honest record to that set does not make the set honest;
+  the contribution would be the evidence requirement itself, which is a protocol argument rather
+  than an integration.
 - **Optimistic fraud proofs** with a seller bond and a challenge window are the most promising
   extension, and the challenge window would itself be a second HIP-1215 schedule — the same
   primitive rather than a new keeper. **This is our documented next step.**
