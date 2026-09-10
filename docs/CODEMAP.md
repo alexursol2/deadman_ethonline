@@ -35,6 +35,7 @@ instance is up, but it will wreck a take. Warm `/health` before filming.
 | [`docs/plans/`](plans/) | Seven plans, each committed **before** its implementation. |
 | [`docs/spikes/`](spikes/) | Fifteen reports with the raw mirror-node JSON behind every number. |
 | [`docs/deploy.md`](deploy.md) | Deployment, secrets, and what a hold actually costs. |
+| [`docs/reputation.md`](reputation.md) | Design note, nothing built: the buyer-side answer to the one cheat the commitments cannot catch. |
 | [`docs/checkins/`](checkins/) | ETHGlobal check-in text. |
 | [`docs/SESSION-01.md`](SESSION-01.md) | The spike session write-up. |
 
@@ -197,7 +198,8 @@ written into the page.
 ## `/docs`
 
 `plans/` (seven, each committed **before** its implementation, per the ETHGlobal attribution rule),
-`spikes/` (fifteen reports plus raw JSON), `deploy.md`, `checkins/01.md`, `SESSION-01.md`.
+`spikes/` (fifteen reports plus raw JSON), `deploy.md`, `reputation.md`, `checkins/01.md`,
+`SESSION-01.md`.
 
 `docs/reviews/` is **empty** — Igor has not reviewed plan 04 or `HoldEscrow.sol`, and both were
 written after the gate Alex set.

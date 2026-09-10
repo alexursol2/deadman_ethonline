@@ -132,6 +132,7 @@ Known solutions we did not build, and why:
   is a channel a strategic seller plays — 402Pilot's own benchmark has no strategic seller in it.
   Honest limit on our side: the market's median seller has earned $3.96 in its lifetime, so the
   future stream this threatens a cheat with is, today, worth almost nothing.
+  [The working, with every number and its source](docs/reputation.md).
 - **On-chain reputation (ERC-8004)** is where those proofs would live, and a hold is already the
   feedback record such a registry lacks: payee, `H(request)`, the amount, the settlement that funded
   it, and an outcome the network wrote rather than a reviewer — no contract change needed, the
@@ -139,7 +140,8 @@ Known solutions we did not build, and why:
   feedback is 41.4% / 92.6% / 96.3% on Ethereum / Base / BSC and ~98% of its reviews have no proof
   of payment or task behind them. Adding one honest record to that set does not make the set honest;
   the contribution would be the evidence requirement itself, which is a protocol argument rather
-  than an integration.
+  than an integration. The narrower version — publish only the proofs, keyed on the payee address —
+  is sketched in the [same note](docs/reputation.md).
 - **Optimistic fraud proofs** with a seller bond and a challenge window are the most promising
   extension, and the challenge window would itself be a second HIP-1215 schedule — the same
   primitive rather than a new keeper. **This is our documented next step.**
