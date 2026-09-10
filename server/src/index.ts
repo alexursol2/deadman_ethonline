@@ -54,6 +54,20 @@ const HOLD_DEADLINE_SECONDS = Number(process.env.HOLD_DEADLINE_SECONDS || 60);
 let claimDelaySeconds = Number(process.env.SELLER_CLAIM_DELAY_SECONDS || 0);
 
 /**
+ * Do not submit a claim with less than this many seconds left on the hold.
+ *
+ * A claim that cannot reach consensus before the armed second buys nothing: the
+ * schedule fires, deleteSchedule comes back non-22, and the whole claim reverts
+ * (C3) — we pay gas to lose a race we could already see we had lost. Two to four
+ * seconds is a normal Hedera round trip, so five is the smallest honest margin.
+ *
+ * This is prudence, NOT safety. The arbiter stays the deleteSchedule return
+ * code; a wrong clock here costs a claim we could have made, never a double
+ * payout. Set to 0 to reproduce the old always-try behaviour.
+ */
+const CLAIM_MARGIN_SECONDS = Number(process.env.SELLER_CLAIM_MARGIN_SECONDS || 5);
+
+/**
  * Deliberate dishonesty, for demonstrating verify.ts. "none" in normal operation.
  *
  * A tool that has never caught anything is an assertion, not a tool. These make
@@ -155,6 +169,7 @@ app.get("/health", async (_req, res) => {
     cheat: CHEAT,
     holdDeadlineSeconds: HOLD_DEADLINE_SECONDS,
     claimDelaySeconds,
+    claimMarginSeconds: CLAIM_MARGIN_SECONDS,
     escrowFreeTinybar: free,
   });
 });
@@ -307,6 +322,19 @@ app.get("/premium", async (req, res) => {
       console.log(`  holding the key for ${claimDelaySeconds}s — kill me now and the refund still lands`);
       await new Promise((r) => setTimeout(r, claimDelaySeconds * 1000));
     }
+    // Deliberately measured against armedDeadline — the second the network
+    // actually booked, which the jitter probe may have moved — not the one we
+    // asked for. Local wall clock is fine for a hint; block.timestamp would not
+    // be, it lags the consensus second by up to ~2s (C2).
+    const secondsLeft = armedDeadline - Math.floor(Date.now() / 1000);
+    if (secondsLeft < CLAIM_MARGIN_SECONDS) {
+      console.log(
+        `  NOT claiming hold ${holdId}: ${secondsLeft}s left, under the ${CLAIM_MARGIN_SECONDS}s margin.` +
+          ` The refund fires at ${armedDeadline} and the buyer gets their money back.`,
+      );
+      return;
+    }
+
     try {
       const claimTx = await escrow.claim(holdId, ethers.hexlify(revealKey), { gasLimit: 3_000_000 });
       await claimTx.wait();
@@ -341,7 +369,7 @@ async function main() {
   console.log(`  facilitator  ${FACILITATOR}  feePayer ${feePayer}`);
   console.log(`  price        ${hbar(PRICE_TINYBAR)}   deadline +${HOLD_DEADLINE_SECONDS}s`);
   console.log(`  escrow free  ${hbar(free)}  (needs ${hbar(needed)})`);
-  console.log(`  DEMO_DARK    ${dark}   claimDelay ${claimDelaySeconds}s`);
+  console.log(`  DEMO_DARK    ${dark}   claimDelay ${claimDelaySeconds}s   claimMargin ${CLAIM_MARGIN_SECONDS}s`);
   if (CHEAT !== "none") console.log(`  SELLER_CHEAT ${CHEAT}  <- this seller is lying on purpose`);
   if (free < needed) console.log(`  WARNING: below the operating reserve; openHold will revert.`);
 
