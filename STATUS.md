@@ -267,9 +267,44 @@ signature and makes the allowlist load-bearing. Contract code after that.
 
 ---
 
+## 2026-09-11 — Alex (merging Igor's review)
+
+**Merged** Igor's PR #4, the claim margin, and PR #5, the roadmap. Both as merge commits so his
+authorship stays in the history. #4 typechecked clean before merging.
+
+**Added to #4** the reason it matters beyond gas: `claim()` carries the key in its calldata and a
+reverted claim is still a recorded transaction, so a claim that loses the race publishes the key
+anyway, and the buyer ends up with both the work and the refund. The margin narrows that window.
+It cannot close it.
+
+**Restored** the known-solutions reasoning in the README (ZKCP, dual deposit, optimistic fraud
+proofs) that #5 had cut down to bare bullets. That reasoning is what shows a judge we know the
+literature, and it should not have been lost in a move.
+
+**Not merged: PR #6**, the reputation MVP. It is 1,496 lines, it rewrites `verify.ts`, which is the
+tool behind the three demonstrated cheat runs, and it puts quality judgement behind an external
+judge URL. Two days before submission, with no demo payoff. Igor's own view was not to ship it
+this week. Left open, not closed.
+
+**Balances at merge.** Escrow free 24.90 HBAR against a 5.00 reserve. Seller 55.50. Agent 25.93.
+
+---
+
 ## 2026-09-06 — Igor (reviewer and adversary)
 
 Monday design review scheduled. Nothing to review yet beyond `docs/plans/01-spikes.md`.
+
+---
+
+## 2026-09-10 — Igor (reviewer and adversary)
+
+Reviewed the project and found a real timing bug in the seller: a claim sent within Hedera's two to
+four second round trip of the armed deadline loses to the refund. Fixed in PR #4 with a
+configurable margin.
+
+Researched the correctness limit: 402Pilot, ERC-8004 feedback gaming, and his own write-up on why
+public reputation fails. Argued it belongs in the roadmap as buyer-side and private, not in the
+code this week. PR #5, merged. PR #6, a working MVP of the same idea, deliberately not merged.
 
 ---
 

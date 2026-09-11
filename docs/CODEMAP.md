@@ -132,6 +132,10 @@ answer → `claim`. Two deviations documented at the call site:
   `@x402/core`'s official `HTTPFacilitatorClient` directly.
 - **`/admin/dark` is token-gated and fails closed** when `ADMIN_TOKEN` is unset.
 
+Seller prudence: `SELLER_CLAIM_MARGIN_SECONDS` (default 5, Igor's PR #4) stops the seller submitting
+a claim inside the last seconds before the armed deadline. A claim that misses consensus loses to the
+refund and still publishes the key in its calldata, so a late claim gives the work away for nothing.
+
 Demo switches: `DEMO_DARK`, `SELLER_CLAIM_DELAY_SECONDS` (the window to kill the process in), and
 `SELLER_CHEAT` (`wrong-key` / `wrong-cipher` / `wrong-plain`) so the lying-seller path is exercisable
 rather than theoretical.

@@ -111,6 +111,19 @@ commits to a ciphertext it did not send, and one that commits to plaintext the c
 contain. In all three the chain is happy and the seller is paid, and `verify.ts` names the broken
 commitment. [The runs](docs/spikes/14-verify.md).
 
+Known solutions we did not build, and why:
+
+- **ZKCP** (zero-knowledge contingent payment) would prove on-chain that the revealed key opens the
+  committed ciphertext. It still does not prove the content is good, so it closes the smaller of the
+  two holes — and a circuit plus tooling plus debugging does not fit a six-day window.
+- **Dual-deposit escrow** makes cheating unprofitable but requires the buyer to dispute, which
+  reintroduces the exact dependency this design removes.
+  ([USC dual-deposit paper](https://anrg.usc.edu/www/papers/Dual_Deposit_ICBC_2019.pdf),
+  [arxiv 1806.08379](https://arxiv.org/pdf/1806.08379))
+- **Optimistic fraud proofs** with a seller bond and a challenge window are the most promising
+  extension, and the challenge window would itself be a second HIP-1215 schedule — the same
+  primitive rather than a new keeper. **This is our documented next step.**
+
 We do not implement a buyer-side trust or scoring layer. Future ideas that are not part of the
 current product or demo are kept in the [roadmap](ROADMAP.md).
 

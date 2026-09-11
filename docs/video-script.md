@@ -24,6 +24,12 @@ problem, then the rest is one continuous unbroken shot of the thing working.
         -d '{"on":false,"claimDelaySeconds":45}'
       ```
       `on:false` matters — the seller must be **willing**. Killing an unwilling seller proves nothing.
+- [ ] Keep the claim delay well inside the margin. The seller now refuses to claim with fewer than
+      5 seconds left (`claimMarginSeconds` in `/health`). With a 60 second deadline, a delay much
+      above 50 means the refund you film is the margin's doing, not the kill's. 45 is right.
+- [ ] Set the delay last, on a warm server. It lives in memory: a cold start or a redeploy puts it
+      back to 0, and then the seller claims instantly and there is no window to kill it in.
+- [ ] Nobody pushes to `main` while you record. Every push redeploys the server.
 - [ ] Board open at https://deadman-board.onrender.com, large type, full screen.
 - [ ] Render dashboard open in a second tab, on the `deadman-server` page, **Suspend** in reach.
 - [ ] Keep the admin token out of frame.

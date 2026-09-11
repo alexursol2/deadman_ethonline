@@ -61,6 +61,12 @@ let claimDelaySeconds = Number(process.env.SELLER_CLAIM_DELAY_SECONDS || 0);
  * (C3) — we pay gas to lose a race we could already see we had lost. Two to four
  * seconds is a normal Hedera round trip, so five is the smallest honest margin.
  *
+ * There is a sharper reason than gas. claim() carries k in its calldata, and a
+ * claim that reverts is still a recorded transaction, so the key goes public
+ * anyway. The buyer already holds C. A late claim therefore hands over the work
+ * AND loses the payment to the refund. The margin narrows that window. It cannot
+ * close it, because consensus latency has no hard upper bound.
+ *
  * This is prudence, NOT safety. The arbiter stays the deleteSchedule return
  * code; a wrong clock here costs a claim we could have made, never a double
  * payout. Set to 0 to reproduce the old always-try behaviour.
