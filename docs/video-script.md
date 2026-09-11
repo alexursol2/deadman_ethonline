@@ -122,8 +122,8 @@ buys credibility for everything before it.
 
 - **One continuous take for the kill.** Cutting between the suspend and the refund is the one edit
   that would make a judge doubt the whole thing.
-- The visible clock on the board and the per-second countdown are there so the footage reads as real
-  time. Do not crop them out.
+- The per-second countdown on each hold is there so the footage reads as real time. Do not crop it
+  out. The board's wall clock was removed on 11 Sep at Alex's request; the countdown does the same job.
 - If the refund is slow, wait. Dead air is far better than a cut.
 - Do not zoom or speed anything up. Automatic disqualification.
 - Record the terminal and the board together if the resolution allows, or cut to the board once the

@@ -54,7 +54,6 @@
       }
       h1 { font-size: 1.6rem; margin: 0; letter-spacing: -0.02em; }
       .tag { color: var(--dim); font-size: 0.95rem; }
-      .clock { margin-left: auto; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
       .counts { display: flex; gap: 1.4rem; font-size: 1.05rem; }
       .counts b { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
       .hold {
@@ -101,7 +100,6 @@
     <header>
       <h1>Deadman</h1>
       <span class="tag">escrow <a id="escrowLink" target="_blank" rel="noopener"></a> · Hedera testnet</span>
-      <span class="clock" id="clock">—</span>
     </header>
 
     <div class="counts">
@@ -330,7 +328,6 @@
 
       $("escrowLink").textContent = ESCROW_ID;
       $("escrowLink").href = `${HASHSCAN}/contract/${ESCROW_EVM}`;
-      setInterval(() => ($("clock").textContent = new Date().toISOString().replace("T", " ").slice(0, 19) + "Z"), 1000);
       setInterval(tickCountdowns, 1000);
       setInterval(poll, POLL_MS);
       poll();
