@@ -323,6 +323,10 @@ runs on the real host.
 exact posture `docs/deploy.md` forbids. `0xEDde…` is already an allowlisted opener on this escrow
 (`isOpener` true), so the fix is one secret on Render, and it is Alex's to change.
 
+**Fixed the same day.** Alex swapped the Render secret. Hold 6 (schedule `0.0.10485290`) was opened
+with payee `0xEDde…`, the provisioned seller, and claimed normally. Holds 1 to 5 stay on-chain as
+signed by the operator; that history is not rewritten.
+
 ---
 
 ## 2026-09-06 — Igor (reviewer and adversary)

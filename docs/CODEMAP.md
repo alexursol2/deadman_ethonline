@@ -16,7 +16,7 @@ corrected rather than copied. The original remains in git history at `5db2c03`.
 | x402 endpoint | https://deadman-server.onrender.com |
 | live board | https://deadman-board.onrender.com |
 | escrow | `0.0.10426758` = `0x1f928BF2261979A818Ade961f3b6d8aC1AAbe860` |
-| seller | `0xEDde92344632132aA349Ac02838fb8c80a44931c`, allowlisted opener, **not** the owner. **Not what is live:** as of 11 Sep the server signs with the operator key `0x130C7B…`, which *is* `owner()`. Swap `SELLER_PRIVATE_KEY` on Render. |
+| seller | `0xEDde92344632132aA349Ac02838fb8c80a44931c`, allowlisted opener, **not** the owner. Live since 11 Sep, verified on hold 6. Holds 1 to 5 were signed by the operator key `0x130C7B…` before the swap. |
 | agent wallet | `0.0.10433495` = `0x7118a1522588fa585Ae7DBfb085c5793D57DA0c1` — a **Privy** server wallet; no key on any machine of ours |
 
 Both services come from one Render blueprint (`render.yaml`). The API is a Docker web service and
