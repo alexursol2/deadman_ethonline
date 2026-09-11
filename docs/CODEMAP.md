@@ -29,6 +29,7 @@ instance is up, but it will wreck a take. Warm `/health` before filming.
 | | |
 |---|---|
 | [`README.md`](../README.md) | The pitch, the limits, how to run it. The front door for a judge. |
+| [`ROADMAP.md`](../ROADMAP.md) | Future ideas only. Nothing in it is claimed as implemented. |
 | [`STATUS.md`](../STATUS.md) | Append-only daily log, one section per person. Where *progress* goes. |
 | **this file** | The code, the plan, the dates, the open gaps. |
 | [`docs/video-script.md`](video-script.md) | The 2–4 minute script, and the pre-flight list that matters more than the words. |
@@ -217,7 +218,8 @@ spend policy is the honest half: **it cannot bind this rail**, because raw signi
 `PolicyMethod` and the wildcard that permits it also voids the cap. Measured, tabulated and reported
 in [spike 16](spikes/16-privy.md) rather than papered over.
 
-**Not built:** HCS receipts and the demo video.
+**Not built in the current scoped deliverable:** HCS receipts and the demo video. Ideas outside
+that scope live in the [roadmap](../ROADMAP.md) and are not implementation claims.
 
 **Not yet run:** the kill test against the *public* host. It needs someone to hit **Suspend** in the
 Render dashboard while a hold is armed and the seller is willing — a dashboard action, so it is the

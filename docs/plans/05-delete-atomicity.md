@@ -33,7 +33,7 @@ Two reasons to measure anyway:
    *not*, the constraint becomes a hard safety requirement with a measured reason behind it, and it
    belongs in the README as a warning to anyone else building on HIP-1215.
 2. **It generalises past `claim`.** Any future path that deletes and then does more work — the
-   optimistic-fraud-proof extension in the README's roadmap re-arms a second schedule — inherits the
+   optimistic-fraud-proof extension in the project roadmap re-arms a second schedule — inherits the
    same question.
 
 Thirty minutes, and it converts a design assumption into a fact.

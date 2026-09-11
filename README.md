@@ -37,7 +37,7 @@ Every x402 escrow that exists needs a party to act when the seller does not deli
 | aegis-protocol (Base) | "permissionless validation": anyone *can* call it, so someone *must* |
 | Bonded escrow (Pranesh) | the buyer submits a signed receipt to claim |
 | Aegis402 | an LLM auditor decides |
-| Reckon402 | reputation has to accrue first |
+| Reckon402 | prior interactions have to accrue first |
 | Pinout (Hedera x402 winner) | metered-session remainder, not a delivery guarantee |
 | [Boson x402B](https://github.com/bosonprotocol/x402B) (Base) | the **buyer**, and quickly — silence releases the money to the seller |
 | [Held](https://github.com/lxfoundry/held) (Boson on Base) | a hosted watchdog raises the dispute *for* the buyer |
@@ -91,6 +91,12 @@ What the four commitments (`H(k)`, `H(C)`, `H(m)`, `H(request)`) do buy: a cheat
 cryptographic proof of exactly which element the seller lied about, and
 [`verify.ts`](agent/src/verify.ts) detects it in one command. That is evidence, not enforcement.
 
+**The liar it catches is the inconsistent one.** A seller that does no work, answers with something
+worthless and commits honestly to the hash of exactly those bytes has lied about no element, so
+there is nothing to detect. That cheat costs the same money as the other three and leaves no proof,
+which makes it the one a rational seller picks — so `H(m)` is a check on a broken seller, not a
+defence against a deliberate one.
+
 This is an oracle problem, and we do not claim to have solved it. Ludo of LX Foundry put the
 boundary precisely when we asked him: a contract cannot know whether a *future* delivery will be
 correct unless the result is predictable before it is bought, and otherwise you need a third-party
@@ -105,18 +111,8 @@ commits to a ciphertext it did not send, and one that commits to plaintext the c
 contain. In all three the chain is happy and the seller is paid, and `verify.ts` names the broken
 commitment. [The runs](docs/spikes/14-verify.md).
 
-Known solutions we did not build, and why:
-
-- **ZKCP** (zero-knowledge contingent payment) would prove on-chain that the revealed key opens the
-  committed ciphertext. It still does not prove the content is good, so it closes the smaller of the
-  two holes — and a circuit plus tooling plus debugging does not fit a six-day window.
-- **Dual-deposit escrow** makes cheating unprofitable but requires the buyer to dispute, which
-  reintroduces the exact dependency this design removes.
-  ([USC dual-deposit paper](https://anrg.usc.edu/www/papers/Dual_Deposit_ICBC_2019.pdf),
-  [arxiv 1806.08379](https://arxiv.org/pdf/1806.08379))
-- **Optimistic fraud proofs** with a seller bond and a challenge window are the most promising
-  extension, and the challenge window would itself be a second HIP-1215 schedule — the same
-  primitive rather than a new keeper. **This is our documented next step.**
+We do not implement a buyer-side trust or scoring layer. Future ideas that are not part of the
+current product or demo are kept in the [roadmap](ROADMAP.md).
 
 ### Limits the spikes found
 
