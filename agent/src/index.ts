@@ -36,10 +36,14 @@ import {
   weibarToTinybar,
 } from "../../server/src/shared.js";
 import { createSigner } from "./signer.js";
+import { decideForEndpoint } from "./reputation.js";
 
 const ENDPOINT = process.env.RESOURCE_URL || "http://localhost:4021/premium";
 const QUERY = process.env.AGENT_QUERY || "what is the airspeed velocity of an unladen swallow";
 const ROUNDS = Number(process.env.AGENT_ROUNDS || 1);
+// Buy from a provider the policy has BLOCKED on proof. Only for demonstrating
+// what the block is protecting against — there is no other honest reason.
+const IGNORE_POLICY = process.env.AGENT_IGNORE_POLICY === "1";
 const NODE_ACCOUNTS = [AccountId.fromString("0.0.3")];
 
 const provider = new ethers.JsonRpcProvider(RPC, { chainId: 296, name: "hedera-testnet" });
@@ -141,6 +145,11 @@ async function oneRound(round: number, escrow: ethers.Contract, escrowAddress: s
   const receipt = {
     holdId: body.holdId,
     escrow: body.escrow,
+    // Which provider this came from, and what we asked it. The policy selects on
+    // a URL; the payee address in the HoldOpened log is the identity a registry
+    // would key on. Binding the two is the open problem — docs/reputation.md.
+    origin: new URL(url).origin,
+    query: QUERY,
     requestMethod: "GET",
     url: new URL(url).pathname + new URL(url).search,
     ciphertext: body.ciphertext,
@@ -190,6 +199,44 @@ async function oneRound(round: number, escrow: ethers.Contract, escrowAddress: s
   return true;
 }
 
+/**
+ * Consult the buyer-side policy before paying.
+ *
+ * The escrow guarantees a silent seller cannot keep the money. It cannot
+ * guarantee a talkative one gives us anything worth having, and the only party
+ * that can act on that is this one, before it pays. Re-run per round rather than
+ * once, because a round can produce the proof that blocks the next one — which
+ * is the whole demonstration.
+ *
+ * Costs a ledger rebuild (a mirror read per prior hold) each time. At demo
+ * volumes that is seconds; at real volumes the ledger would be cached.
+ */
+async function allowedToBuy(escrowAddress: string): Promise<boolean> {
+  let state;
+  try {
+    state = await decideForEndpoint(escrowAddress, ENDPOINT);
+  } catch (e: any) {
+    // A policy we cannot compute must not become a policy that says no. The
+    // escrow is what protects the money; this only decides where to spend it.
+    console.log(`\n  policy   unavailable (${e.message}) — buying anyway.`);
+    return true;
+  }
+
+  console.log(`\n  policy   ${state.action}  ${state.key}`);
+  console.log(`           ${state.reason}`);
+  if (state.action !== "BLOCK") return true;
+
+  if (IGNORE_POLICY) {
+    console.log(`           AGENT_IGNORE_POLICY=1 — paying a provably dishonest seller on purpose.`);
+    return true;
+  }
+  console.log(
+    `\n  NOT BUYING. The block is a proof anyone can recompute from chain data,` +
+      `\n  not a rating we were told. npm run reputation shows the evidence.\n`,
+  );
+  return false;
+}
+
 async function main() {
   const escrowAddress = process.env.ESCROW_ADDRESS || "";
   const escrow = new ethers.Contract(escrowAddress, ESCROW_ABI, provider);
@@ -210,6 +257,7 @@ async function main() {
   console.log(`  escrow   ${await entityIdOf(escrowAddress)}`);
 
   for (let i = 1; i <= ROUNDS; i++) {
+    if (!(await allowedToBuy(escrowAddress))) break;
     const ok = await oneRound(i, escrow, escrowAddress, myAccountId);
     if (!ok) break;
     if (i < ROUNDS) await sleep(2000);

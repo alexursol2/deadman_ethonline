@@ -317,3 +317,60 @@ Not started.
 ## 2026-09-06 — Media
 
 Build log starts today.
+
+---
+
+## 2026-09-10 — the buyer-side policy
+
+**Landed**
+
+- `docs/plans/10-buyer-side-policy.md`, committed before the code, per the rule.
+- **Named the third cheat, which we had never separated out.** `verify.ts` catches a seller whose
+  commitments are inconsistent with each other. A seller that does no work, answers with something
+  worthless and commits **honestly** to those exact bytes has lied about no element — nothing to
+  find. It costs the same money as the other three and leaves no proof, so it is the cheat a
+  rational seller picks. The README said "a seller can encrypt garbage" and then described the
+  commitments as if they caught it. They do not, and now the README says which liar they catch.
+- **`SELLER_CHEAT=garbage`** in the resource server: that cheat, exercisable. Same rule as the other
+  three — a limit nobody has demonstrated is an assertion.
+- **`agent/src/reputation.ts`, `npm run reputation`** — the buyer-side policy. Two channels, and
+  only one of them discounted: proofs from the chain never expire and one is permanent exclusion;
+  quality judgements decay and a provider recovers. Discounting a proof is how you get farmed, and
+  forgetting is a channel a strategic seller plays against the PA-DCT policy this borrows from —
+  whose own paper states it has no strategic seller in its benchmark.
+- **`agent/src/audit.ts`** — the commitment checks now live in one place. `verify.ts` renders them,
+  `reputation.ts` counts them. Two implementations of one rule would drift, and drift here looks
+  exactly like a lying seller. `verify.ts` output is unchanged; `--json` added.
+- **`agent/src/quality.ts`** — the soft-channel judge, structural and deliberately weak, with
+  `QUALITY_JUDGE_URL` as the seam for a real one. Scoring is not free and the code says so.
+- The agent consults the policy before **every** round, not once, because a round can produce the
+  proof that blocks the next one.
+- `docs/reputation.md` — the design, every number with its source, and what it does not do.
+
+**Verified, on live testnet data**
+
+- The audit path reads real holds on the deployed escrow (`0.0.10426758`) with no receipt present
+  and correctly reports a CLAIMED hold we hold no ciphertext for as a seller paid for nothing.
+- The on-chain sibling scan works: given a receipt for hold 2, it discovered hold 3 — same payer, no
+  local receipt — and scored it. A receipt is a local file and can be lost; the chain cannot.
+- The structural judge separates the honest payload (1.00) from the `garbage` payload (0.00). It
+  scored 0.17 on garbage until stopwords were added, because "the" was counted as a content word —
+  a floor under every score is exactly how a cheap judge becomes useless.
+- Both packages typecheck.
+
+**Corrected in the README while there**
+
+Two stale lines the front page contradicted a screen earlier: the server described as "deployment-ready
+but not deployed" above a table giving its public URL, and "`HoldEscrow.sol` is not written yet"
+under a status section describing it running on testnet. Both now match the Live table.
+
+**Next**
+
+- Run the four scenarios against the live host — honest, `wrong-key`, `garbage`, dark — and write
+  `docs/spikes/17-buyer-policy.md`. **Nothing in the README claims those runs have happened.** The
+  `garbage`/honest pair is the one that matters: `verify.ts` clean in both, quality 1.00 against
+  0.00.
+- Decide whether the video says any of this. It is thirty seconds and it is the answer to the
+  obvious "so a seller can just send junk?" — but the core claim is the refund, and this is not it.
+
+**Blocked** — nothing.

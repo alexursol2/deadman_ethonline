@@ -14,6 +14,7 @@ has never seen also creates it.
 ## What it does
 
 ```
+0. ask the buyer-side policy whether this provider is worth paying at all
 1. GET /premium                        -> 402 with payment requirements
 2. sign a partially-signed transfer     (the facilitator pays the network fee)
 3. retry with X-PAYMENT                -> ciphertext + holdId, and no key
@@ -29,6 +30,13 @@ out by looking, not by acting.
 Step 4 matters too: the agent verifies the seller committed to the exact ciphertext it was handed
 *before* it knows whether the key works. If the key later fails to decrypt, that is a provable lie
 about a specific element rather than an argument.
+
+Step 0 is the newest and the one that admits what the chain cannot do. A seller that answers with
+something worthless and commits honestly to it breaks no commitment, so nothing in steps 1–5 sees
+it. `npm run reputation` does — by the only means available, which is refusing to buy from it again.
+Proofs from the chain block a provider permanently; quality judgements decay. `AGENT_IGNORE_POLICY=1`
+buys from a blocked seller anyway, which exists only to demonstrate what the block prevents.
+The design and its limits: [docs/reputation.md](../docs/reputation.md).
 
 ## Why it polls the mirror node instead of subscribing
 
@@ -50,6 +58,19 @@ Both are recorded in [the write-up](../docs/spikes/13-server-agent.md).
 | `AGENT_ROUNDS` | how many purchases to make |
 | `AGENT_PRIVATE_KEY` | the agent's own ECDSA key |
 | `ESCROW_ADDRESS` | so it can watch its own holds |
+| `REPUTATION_DECAY` | how fast an opinion ages. Proofs never age. Default 0.8 |
+| `REPUTATION_MIN_SCORE` | below this a provider is not worth buying from. Default 0.6 |
+| `QUALITY_JUDGE_URL` | a real judge, if you have one. Without it the scorer is structural and weak |
+| `AGENT_IGNORE_POLICY` | `1` pays a provably dishonest seller on purpose |
+
+## Commands
+
+```bash
+npm start                      # buy
+npm run verify <holdId>        # re-check every commitment against the chain
+npm run verify <holdId> -- --json
+npm run reputation             # score every provider we have bought from
+```
 
 ## What it is not, yet
 

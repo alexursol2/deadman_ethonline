@@ -7,7 +7,8 @@
   "scripts": {
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
-    "verify": "tsx src/verify.ts"
+    "verify": "tsx src/verify.ts",
+    "reputation": "tsx src/reputation.ts"
   },
   "dependencies": {
     "@hashgraph/sdk": "^2.81.0",
