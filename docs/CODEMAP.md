@@ -16,7 +16,7 @@ corrected rather than copied. The original remains in git history at `5db2c03`.
 | x402 endpoint | https://deadman-server.onrender.com |
 | live board | https://deadman-board.onrender.com |
 | escrow | `0.0.10426758` = `0x1f928BF2261979A818Ade961f3b6d8aC1AAbe860` |
-| seller | `0xEDde92344632132aA349Ac02838fb8c80a44931c` — allowlisted opener, **not** the owner |
+| seller | `0xEDde92344632132aA349Ac02838fb8c80a44931c`, allowlisted opener, **not** the owner. **Not what is live:** as of 11 Sep the server signs with the operator key `0x130C7B…`, which *is* `owner()`. Swap `SELLER_PRIVATE_KEY` on Render. |
 | agent wallet | `0.0.10433495` = `0x7118a1522588fa585Ae7DBfb085c5793D57DA0c1` — a **Privy** server wallet; no key on any machine of ours |
 
 Both services come from one Render blueprint (`render.yaml`). The API is a Docker web service and
@@ -29,7 +29,7 @@ instance is up, but it will wreck a take. Warm `/health` before filming.
 | | |
 |---|---|
 | [`README.md`](../README.md) | The pitch, the limits, how to run it. The front door for a judge. |
-| [`ROADMAP.md`](../ROADMAP.md) | Future ideas only. Nothing in it is claimed as implemented. |
+| [`ROADMAP.md`](../ROADMAP.md) | Future ideas. The one part already built, the buyer-side policy MVP, says so. |
 | [`STATUS.md`](../STATUS.md) | Append-only daily log, one section per person. Where *progress* goes. |
 | **this file** | The code, the plan, the dates, the open gaps. |
 | [`docs/video-script.md`](video-script.md) | The 2–4 minute script, and the pre-flight list that matters more than the words. |
@@ -197,7 +197,10 @@ second half. Two channels: proofs from the chain are **never** discounted and on
 exclusion; quality judgements decay and a provider recovers. Discounting a proof is how you get
 farmed, and forgetting is a channel a strategic seller plays — which is the gap in the PA-DCT policy
 this borrows its shape from. `npm run reputation`; the agent consults it before every round. Design,
-numbers and limits in [reputation.md](reputation.md).
+numbers and limits in [reputation.md](reputation.md). Only a broken commitment in a receipt the buyer
+holds can block. A claimed hold with no local receipt is "unaccounted", a soft strike, because a lost
+file is not proof. And a receipt only counts for the escrow it was written against, because hold ids
+restart at 1 on every escrow and the retired escrow's receipts share the folder.
 
 ---
 

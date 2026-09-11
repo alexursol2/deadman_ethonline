@@ -142,8 +142,8 @@ Known solutions we did not build, and why:
   publishing only the proofs and keying them on the payee address, is sketched in
   [docs/reputation.md](docs/reputation.md).
 
-We do not implement a buyer-side trust or scoring layer. Future ideas that are not part of the
-current product or demo are kept in the [roadmap](ROADMAP.md).
+The buyer-side policy is an MVP: off-chain, private to the buyer, with a deliberately weak judge.
+What would make it more than that, and the ideas beyond it, are in the [roadmap](ROADMAP.md).
 
 ### Limits the spikes found
 

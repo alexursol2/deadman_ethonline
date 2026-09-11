@@ -75,6 +75,11 @@ evidence and they deserve different treatment:
 with time. So they are **never discounted**: one is permanent exclusion. Discounting a proof is how
 you get farmed.
 
+> **Corrected 2026-09-11, after running it.** T1 is not recomputable by anyone: it rests on the
+> buyer *not* holding a receipt, which a lost or relocated file produces just as well. Tested: with
+> one honest hold's receipt removed, the policy permanently blocked our own endpoint. T1 is now a
+> soft strike and only T2 is proof. The plan above is left as written; this note is the correction.
+
 **Soft channel — judgements.** T3 and a seller that goes dark are noisy: a crash and a scam look
 identical from one observation. These are discounted, exactly as PA-DCT does, and a provider can
 recover from them.

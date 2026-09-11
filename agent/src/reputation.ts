@@ -13,15 +13,16 @@
  *
  * TWO CHANNELS, AND ONLY ONE OF THEM IS DISCOUNTED
  *
- *   hard   audit.ts found a broken commitment, or the seller was paid for a
- *          delivery we never received. These are not opinions: anyone can
- *          recompute them from HoldOpened and Claimed, and an honest seller
- *          cannot produce one. So they are NEVER discounted. One is permanent
- *          exclusion.
+ *   hard   audit.ts found a broken commitment in a receipt we hold. That is
+ *          not an opinion: given the receipt, anyone can recompute it from
+ *          HoldOpened and Claimed, and an honest seller cannot produce one. So
+ *          it is NEVER discounted. One is permanent exclusion.
  *
- *   soft   the answer was poor, or the seller went dark and the network refunded
- *          us. A crash and a scam look identical from one observation, so these
- *          decay with age and a provider can recover from them — exactly as
+ *   soft   the answer was poor, the seller went dark and the network refunded
+ *          us, or a hold was CLAIMED and we hold no receipt for it. A crash and
+ *          a scam look identical from one observation, and so do "never handed
+ *          us a ciphertext" and "the receipt is on another machine", so these
+ *          decay with age and a provider can recover from them, exactly as
  *          PA-DCT does.
  *
  * Discounting a proof is how you get farmed. PA-DCT forgets old observations so
@@ -62,7 +63,7 @@ export type Action = "USE" | "TRY" | "AVOID" | "BLOCK";
 
 export interface Observation {
   holdId: string;
-  kind: "delivered" | "dark" | "broken" | "undelivered";
+  kind: "delivered" | "dark" | "broken" | "unaccounted";
   quality: number;
   amountHbar: number;
   detail: string;
@@ -136,7 +137,10 @@ function keyResolver(audits: HoldAudit[]): (a: HoldAudit) => string {
  * that produces NO receipt — a seller that claims without ever handing over a
  * ciphertext — would be invisible if we stopped there. So after auditing what we
  * have, we look for holds on-chain paid by the same addresses and audit those
- * too. The chain is the record that cannot be lost.
+ * too. The chain is the record that cannot be lost. What it cannot say is
+ * whether we were handed anything: those holds come back "unaccounted" and count
+ * as a soft strike, never as proof, because a receipt that is merely on another
+ * machine looks exactly the same from here.
  */
 export async function gather(escrowAddress: string): Promise<HoldAudit[]> {
   const provider = new ethers.JsonRpcProvider(RPC, { chainId: 296, name: "hedera-testnet" });
@@ -200,13 +204,26 @@ export async function buildLedger(escrowAddress: string): Promise<{ audits: Hold
       const amountHbar = Number(a.amountTinybar) / 1e8;
 
       if (a.verdict === "cheated") {
-        const undelivered = a.broken.some((c) => c.id === "delivery");
         observations.push({
           holdId: a.holdId,
-          kind: undelivered ? "undelivered" : "broken",
+          kind: "broken",
           quality: 0,
           amountHbar,
           detail: a.broken.map((c) => c.id).join(", "),
+        });
+        continue;
+      }
+
+      if (a.verdict === "unaccounted") {
+        // Paid and claimed, and no receipt here. Not proof, because the receipt
+        // may simply live on another machine, so it is a soft strike: it lowers
+        // reliability, decays like any opinion, and can never BLOCK.
+        observations.push({
+          holdId: a.holdId,
+          kind: "unaccounted",
+          quality: 0,
+          amountHbar,
+          detail: "CLAIMED, and no receipt on this machine",
         });
         continue;
       }
@@ -252,10 +269,15 @@ export async function buildLedger(escrowAddress: string): Promise<{ audits: Hold
 
 function score(key: string, list: HoldAudit[], observations: Observation[]): ProviderState {
   const payees = Array.from(new Set(list.map((a) => a.payee)));
-  const hardEvidence = observations.filter((o) => o.kind === "broken" || o.kind === "undelivered");
+  // Only a broken commitment in a receipt we hold is proof. A missing receipt
+  // is not: on 2026-09-11, removing one receipt made this policy permanently
+  // BLOCK our own honest seller. See audit.ts, "the case where we hold nothing".
+  const hardEvidence = observations.filter((o) => o.kind === "broken");
 
   // Newest first, so the freshest observation carries weight 1.
-  const soft = observations.filter((o) => o.kind === "delivered" || o.kind === "dark").reverse();
+  const soft = observations
+    .filter((o) => o.kind === "delivered" || o.kind === "dark" || o.kind === "unaccounted")
+    .reverse();
   let wSum = 0;
   let qSum = 0;
   let rSum = 0;
@@ -280,10 +302,7 @@ function score(key: string, list: HoldAudit[], observations: Observation[]): Pro
   if (hardEvidence.length) {
     action = "BLOCK";
     const first = hardEvidence[0];
-    reason =
-      first.kind === "undelivered"
-        ? `paid on hold ${first.holdId} and handed us nothing. Proof, not opinion — never expires.`
-        : `broke a commitment on hold ${first.holdId} (${first.detail}). Proof, not opinion — never expires.`;
+    reason = `broke a commitment on hold ${first.holdId} (${first.detail}). Proof, not opinion — never expires.`;
   } else if (!soft.length) {
     action = "TRY";
     reason = "no evidence yet. A public rating would be the prior here, and we deliberately do not use one.";
@@ -372,7 +391,13 @@ async function main() {
     }
     for (const o of p.observations) {
       const tag =
-        o.kind === "delivered" ? `q=${o.quality.toFixed(2)}` : o.kind === "dark" ? "refunded" : "PROOF";
+        o.kind === "delivered"
+          ? `q=${o.quality.toFixed(2)}`
+          : o.kind === "dark"
+            ? "refunded"
+            : o.kind === "unaccounted"
+              ? "no receipt"
+              : "PROOF";
       console.log(`             hold ${o.holdId.padEnd(4)} ${tag.padEnd(9)} ${o.detail}`);
     }
   }

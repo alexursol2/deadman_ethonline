@@ -30,6 +30,12 @@ problem, then the rest is one continuous unbroken shot of the thing working.
 - [ ] Set the delay last, on a warm server. It lives in memory: a cold start or a redeploy puts it
       back to 0, and then the seller claims instantly and there is no window to kill it in.
 - [ ] Nobody pushes to `main` while you record. Every push redeploys the server.
+- [ ] Do not run a `SELLER_CHEAT` against the live server before the take. The agent now asks its
+      buyer-side policy before every purchase, and one proven cheat blocks that endpoint for good.
+      If it happens, `AGENT_IGNORE_POLICY=1` lets the agent buy anyway.
+- [ ] Expect a policy line in the terminal before each purchase. After a kill rehearsal it says
+      AVOID, because the seller just went dark, which is what it notices, and then buys anyway.
+      Keep the board as the main shot, or be ready to say that in one sentence.
 - [ ] Board open at https://deadman-board.onrender.com, large type, full screen.
 - [ ] Render dashboard open in a second tab, on the `deadman-server` page, **Suspend** in reach.
 - [ ] Keep the admin token out of frame.

@@ -19,7 +19,7 @@ on-chain. So a paid-and-cheated buyer is in one of three positions:
 
 | | The seller | What the buyer holds | Who catches it |
 |---|---|---|---|
-| **T1** | claims without ever handing over a ciphertext | nothing | the absence is the evidence. `audit.ts` flags a CLAIMED hold with no delivery |
+| **T1** | claims without ever handing over a ciphertext | nothing | nobody, yet. A missing receipt looks exactly like a receipt kept on another machine, so `audit.ts` reports it as *unaccounted*, a soft strike |
 | **T2** | sends a ciphertext its commitments do not match | a provable inconsistency | `verify.ts`, from chain data, by anyone, forever |
 | **T3** | sends a worthless answer and commits **honestly** to it | a perfect, consistent record | nobody. There is no lie to find |
 
@@ -52,8 +52,10 @@ of evidence and they must not be scored the same way:
 
 | | | |
 |---|---|---|
-| **hard** | T1 and T2 | Recomputable by anyone from `HoldOpened` and `Claimed`. An honest seller cannot produce one. **Never discounted; one is permanent exclusion.** |
-| **soft** | T3, and a seller that goes dark | A crash and a scam look identical from one observation. **Discounted with age; a provider recovers.** |
+| **hard** | T2 | Recomputable by anyone from `HoldOpened`, `Claimed` and the buyer's receipt. An honest seller cannot produce one. **Never discounted; one is permanent exclusion.** |
+| **soft** | T3, T1, and a seller that goes dark | A crash and a scam look identical from one observation, and so do a T1 seller and a lost receipt. **Discounted with age; a provider recovers.** |
+
+**Corrected 2026-09-11, after running it.** T1 was first placed in the hard channel. It does not belong there: "we hold no receipt" is the absence of a local file, not a fact about the seller, and with one receipt removed the policy permanently blocked our own honest endpoint. T1 becomes provable only when the buyer writes its receipt at payment time, before the reply, so that "paid, and nothing arrived" is a first-hand record. That is in the roadmap.
 
 Discounting a proof is how you get farmed. PA-DCT forgets old observations so a provider can recover
 from a bad patch — correct against a stationary defect, and a *channel* against a strategic one:

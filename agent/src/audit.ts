@@ -20,8 +20,9 @@
  * outcomes:
  *
  *   delivered  every commitment holds and the ciphertext opened
- *   cheated    a commitment is provably broken, or the hold was CLAIMED and we
- *              were never handed a ciphertext at all
+ *   cheated    a commitment in a receipt we hold is provably broken
+ *   unaccounted  CLAIMED, but this machine holds no receipt. Not evidence
+ *              either way: see "the case where we hold nothing" below
  *   refunded   the seller never revealed, and the network paid the buyer back
  *   pending    still open, or the key has not surfaced in the log yet
  *
@@ -59,7 +60,7 @@ export interface Check {
   ok: boolean | null;
 }
 
-export type Verdict = "delivered" | "cheated" | "refunded" | "pending";
+export type Verdict = "delivered" | "cheated" | "refunded" | "pending" | "unaccounted";
 
 export interface Receipt {
   holdId: string;
@@ -129,7 +130,15 @@ export async function auditHold(
   escrow: ethers.Contract,
   escrowAddress: string,
 ): Promise<HoldAudit> {
-  const receipt = loadReceipt(holdId);
+  const loaded = loadReceipt(holdId);
+  // Hold ids restart at 1 on every escrow, and receipts from a retired escrow
+  // stay in the same folder. Auditing one against another escrow's hold of the
+  // same number compares two unrelated holds and reads as a broken commitment:
+  // a false proof, and a permanent block. A receipt only counts for its own escrow.
+  if (loaded?.escrow && loaded.escrow.toLowerCase() !== escrowAddress.toLowerCase()) {
+    throw new Error(`receipt for hold ${holdId} belongs to escrow ${loaded.escrow}, not this one`);
+  }
+  const receipt = loaded;
 
   const openedLogs = await contractLogs(
     escrowAddress,
@@ -156,20 +165,30 @@ export async function auditHold(
   let plaintext: string | null = null;
 
   /* ── the case where we hold nothing at all ──
-   * The seller answered with no ciphertext, or the round never completed. If
-   * the hold was nonetheless CLAIMED, the seller was paid for a delivery that
-   * did not happen, and the absence of a receipt is the only record of it. */
+   * A CLAIMED hold with no receipt on this machine is EITHER a seller that was
+   * paid and never handed us a ciphertext, OR a receipt that lives on another
+   * machine or was lost. The absence of a local file cannot tell them apart,
+   * so it is not evidence against the seller and must never be a broken check.
+   *
+   * It used to be. On 2026-09-11, removing one receipt made reputation.ts
+   * permanently BLOCK our own honest seller, and this tool would have printed
+   * THE SELLER CHEATED for a hold that was delivered. Making non-delivery
+   * provable needs a receipt written at payment time, before the reply, so that
+   * "paid, and nothing recorded" is a first-hand record instead of an absence.
+   * Not built. */
   if (!receipt) {
     const paid = Number(hold.status) === 2;
     checks.push({
       id: "delivery",
       name: "we were handed a ciphertext at all",
       detail: paid
-        ? "the hold was CLAIMED and we hold no ciphertext for it — paid for nothing"
+        ? "the hold was CLAIMED and this machine holds no receipt for it: either we were never handed a ciphertext, or the receipt is elsewhere. From here those look identical, so this is not evidence"
         : "no receipt on this machine for this hold",
-      ok: paid ? false : null,
+      ok: null,
     });
-    if (!paid) note = `\n  No receipt for hold ${holdId}. Nothing local to check it against.`;
+    note = paid
+      ? `\n  Hold ${holdId} was CLAIMED and there is no receipt for it here. Unaccounted, not proven.`
+      : `\n  No receipt for hold ${holdId}. Nothing local to check it against.`;
   } else {
     /* ── 1. did the seller's HTTP reply match what it actually committed? ── */
     // The seller told us its commitments over HTTP. That claim is not evidence.
@@ -279,6 +298,7 @@ export async function auditHold(
   if (broken.length) verdict = "cheated";
   else if (Number(hold.status) === 3) verdict = "refunded";
   else if (Number(hold.status) === 2 && plaintext !== null) verdict = "delivered";
+  else if (!receipt && Number(hold.status) === 2) verdict = "unaccounted";
   else verdict = "pending";
 
   return {

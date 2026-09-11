@@ -101,7 +101,13 @@ async function main() {
 
   if (!failed.length) {
     const anyChecked = audit.checks.some((c) => c.ok === true);
-    console.log(anyChecked ? `  VERDICT: everything the seller committed to holds up.` : `  VERDICT: nothing to check yet.`);
+    console.log(
+      audit.verdict === "unaccounted"
+        ? `  VERDICT: unaccounted. The seller was paid and there is no receipt here to check it against.`
+        : anyChecked
+          ? `  VERDICT: everything the seller committed to holds up.`
+          : `  VERDICT: nothing to check yet.`,
+    );
     if (audit.plaintext) console.log(`\n${audit.plaintext.split("\n").map((l) => `      ${l}`).join("\n")}`);
     console.log(
       `\n  Note: this proves DELIVERY, not correctness. A seller can encrypt` +

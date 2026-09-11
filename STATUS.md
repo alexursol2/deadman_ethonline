@@ -281,12 +281,47 @@ It cannot close it.
 proofs) that #5 had cut down to bare bullets. That reasoning is what shows a judge we know the
 literature, and it should not have been lost in a move.
 
-**Not merged: PR #6**, the reputation MVP. It is 1,496 lines, it rewrites `verify.ts`, which is the
-tool behind the three demonstrated cheat runs, and it puts quality judgement behind an external
-judge URL. Two days before submission, with no demo payoff. Igor's own view was not to ship it
-this week. Left open, not closed.
+**PR #6, the reputation MVP: held back, then tested and merged with one fix.** Held back at first
+because it rewrites `verify.ts`, the tool behind the three demonstrated cheat runs. Then run
+properly on the merged tree: both packages typecheck; `verify.ts` output is identical to main's on
+holds 2, 3 and 4 and on the three cheat holds 14, 15 and 16; the policy does not block our seller
+over the old cheat runs, because those are on the retired escrow. The external judge URL is
+optional and falls back to the structural judge, and says so in its output.
 
-**Balances at merge.** Escrow free 24.90 HBAR against a 5.00 reserve. Seller 55.50. Agent 25.93.
+**The fix.** A claimed hold with no local receipt was scored as hard proof that the seller "handed
+us nothing", which is a permanent block. A missing file cannot tell that apart from a receipt that
+lives on another machine. Reproduced it: with hold 5's receipt removed, the policy blocked our own
+honest endpoint and the demo agent refused to buy. `audit.ts` now calls that case "unaccounted",
+`reputation.ts` counts it as a soft strike that decays, and only a broken commitment in a receipt
+we hold can block. `verify.ts` no longer prints THE SELLER CHEATED for a hold it merely has no
+receipt for.
+
+**Second fix, same class: receipts from the retired escrow.** Hold ids restart at 1 on every
+escrow, and the retired escrow's receipts (holds 13 to 16) sit in the same folder as the live ones.
+The batch audit checked each receipt against whichever escrow it was handed, not the receipt's own.
+Reproduced by pointing the policy at the retired escrow: the live receipts for holds 2 to 5 were
+read against its unrelated holds 2 to 5 and scored as four PROOFs, permanently blocking the
+operator's address. The same collision would hit the live escrow the moment someone else's
+purchase took it to hold 13. A receipt now only counts for its own escrow. After the guard the same
+run blocks exactly the three real cheats, holds 14, 15 and 16, and nothing else.
+
+**What the demo agent now prints.** Before each purchase it prints the policy's decision. With every
+receipt present it reads USE. After a kill rehearsal it will read AVOID, because a seller that went
+dark is exactly what it exists to notice, and it buys anyway: only a proof stops it. Noted for Igor,
+not changed this close to submission: a dark refund counts twice, once in quality and once in
+reliability, so two rehearsals are enough to push an honest seller under the threshold.
+
+**Balances at merge.** Escrow free 24.90 HBAR against a 5.00 reserve. Agent 25.93. The account
+actually signing as seller is the operator, 534.27 (see below); the provisioned seller holds 55.50.
+
+**Live claim test after merging #4.** Hold 5, schedule `0.0.10478071`, paid through the Privy wallet
+against the redeployed server: key revealed on-chain, `H(k)` matched, decrypted. The margin code path
+runs on the real host.
+
+**Found: the live server signs with the operator key.** Every live hold's payee is `0x130C7B…` =
+`0.0.10393158`, which is `owner()` of the escrow, not the provisioned seller `0xEDde…`. That is the
+exact posture `docs/deploy.md` forbids. `0xEDde…` is already an allowlisted opener on this escrow
+(`isOpener` true), so the fix is one secret on Render, and it is Alex's to change.
 
 ---
 
@@ -304,7 +339,8 @@ configurable margin.
 
 Researched the correctness limit: 402Pilot, ERC-8004 feedback gaming, and his own write-up on why
 public reputation fails. Argued it belongs in the roadmap as buyer-side and private, not in the
-code this week. PR #5, merged. PR #6, a working MVP of the same idea, deliberately not merged.
+code this week. PR #5, merged. PR #6, a working MVP of the same idea, merged on 11 Sep after testing, with one fix
+to how missing receipts are scored.
 
 ---
 
@@ -351,6 +387,10 @@ Build log starts today.
 
 - The audit path reads real holds on the deployed escrow (`0.0.10426758`) with no receipt present
   and correctly reports a CLAIMED hold we hold no ciphertext for as a seller paid for nothing.
+  **Corrected 2026-09-11 (Alex):** this was the bug, not the feature. A missing receipt cannot
+  tell "never handed a ciphertext" from "the receipt is on another machine". With hold 5's receipt
+  removed, the policy permanently BLOCKed our own honest endpoint and the demo agent refused to
+  buy. That case is now "unaccounted": a soft strike that decays and can never block.
 - The on-chain sibling scan works: given a receipt for hold 2, it discovered hold 3 — same payer, no
   local receipt — and scored it. A receipt is a local file and can be lost; the chain cannot.
 - The structural judge separates the honest payload (1.00) from the `garbage` payload (0.00). It

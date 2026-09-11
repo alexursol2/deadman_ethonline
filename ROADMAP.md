@@ -1,7 +1,6 @@
 # Roadmap
 
-This file contains future ideas only. Nothing described here is part of the current Deadman
-implementation or demo.
+Where the project goes next. Every item says plainly whether any of it exists today.
 
 ## Where this goes
 
@@ -15,13 +14,16 @@ Igor's framing of the whole arc: four layers of protection for an agent that buy
 3. **Encryption as the contract between buyer and seller.** Four commitments, a key revealed
    on-chain, and `verify.ts` naming whichever one was broken. Shipped.
 4. **Buyer-side reputation**, for the one cheat the first three cannot see: an honest commitment
-   to a worthless answer. Not built. Below.
+   to a worthless answer. An MVP is in (`npm run reputation`, PR #6). What it would take to make
+   it real is below.
 
 ## Buyer-side reputation and provider selection
 
-**Status: not implemented.** The repository has no reputation engine, provider score, quality
-judge, reputation ledger, provider-selection policy, or reputation-related CLI/npm command. It
-does not publish feedback to an on-chain registry.
+**Status: MVP, not a product.** `npm run reputation` (Igor, PR #6) keeps a ledger private to the
+buyer. A broken commitment in a receipt we hold is a permanent block; everything else, including a
+claimed hold we have no receipt for, is an opinion that decays. The judge is structural and
+deliberately weak, and nothing is published to any registry. The steps below are what would make
+it more than a demonstration.
 
 The problem this work may address is deliberately outside the current escrow: the contract and
 `agent/src/verify.ts` can detect inconsistent commitments, but they cannot decide whether an
@@ -50,6 +52,9 @@ Possible research and implementation steps:
 5. Evaluate ERC-8004 only after the provider-to-on-chain-identity mapping, evidence format, privacy
    boundary, and Sybil assumptions are specified. There is no ERC-8004 integration or published
    feedback today.
+6. Write the receipt at payment time, before the seller replies, so that "paid and handed
+   nothing" becomes a first-hand record rather than the absence of a file. Until then a claimed
+   hold with no receipt can only ever be a soft strike.
 
 Any future implementation must update the README and code map only after the code and tests exist.
 
