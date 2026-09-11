@@ -105,9 +105,15 @@ async function awaitOutcome(escrow: ethers.Contract, escrowAddress: string, hold
       if (late.length) return { kind: "claimed" as const, k: late[0].data as string };
     }
 
-    const left = Math.max(0, Math.round((deadlineMs - Date.now()) / 1000));
-    process.stdout.write(`
-    waiting… hold ${holdId}, ${left}s left   `);
+    // Count down to the refund second, the same number the board shows. The
+    // extra 90s in deadlineMs is patience for the mirror node to catch up, and
+    // printing that as "left" made the terminal disagree with the board.
+    const toRefund = armedDeadline - Math.floor(Date.now() / 1000);
+    process.stdout.write(
+      toRefund > 0
+        ? `\n    waiting… hold ${holdId}, refund fires in ${toRefund}s   `
+        : `\n    waiting… hold ${holdId}, refund due, waiting for the network   `,
+    );
     await sleep(3000);
   }
   return { kind: "timeout" as const, k: null };

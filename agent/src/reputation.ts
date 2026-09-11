@@ -154,7 +154,10 @@ export async function gather(escrowAddress: string): Promise<HoldAudit[]> {
       audits.push(await auditHold(holdId, escrow, escrowAddress));
       seen.add(holdId);
     } catch (e: any) {
-      console.log(`  (skipping hold ${holdId}: ${e.message})`);
+      // Receipts from a retired escrow are expected and are not news; say nothing.
+      if (!String(e.message).includes("belongs to escrow")) {
+        console.log(`  (skipping hold ${holdId}: ${e.message})`);
+      }
     }
   }
 
